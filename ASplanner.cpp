@@ -582,9 +582,10 @@ ASplanner:: car_path ASplanner::Generator::colliding_conflict(car_path* path, ui
 //节点冲突
 ASplanner::pathList ASplanner::Generator::node_conflict(car_path* path,uint k ,car_path* pro_path,uint n ,vector<G_Node>* GNs)
 {
-    
-    if ((*path).second[k].path.source_index == pro_path->second[n].path.target_index //起点为前车的目标点
-        && (*path).second[k].path.target_index == pro_path->second[n].path.source_index
+    auto GN_point = &(*path).second[k];
+    auto point_pro = &(*pro_path).second[n];
+    if (GN_point->path.source_index == point_pro->path.target_index //起点为前车的目标点
+        && GN_point->path.target_index == point_pro->path.source_index
         && pro_path->second.size() > 2  //大于等于三
         && pro_path->second[n].index < ((*pro_path).second.size() - 2)
         &&path->second.size()>2
@@ -595,16 +596,16 @@ ASplanner::pathList ASplanner::Generator::node_conflict(car_path* path,uint k ,c
         if (pro_path->first.type==0) { length_time = agv_length / pro_path->first.car_v; }//AGV车长/速度
         else { length_time = fork_length / pro_path->first.car_v; }//叉车车长/速度
 
-        if (((*path).second[k].start_time < (*pro_path).second[n].end_time + length_time && (*path).second[k].start_time >(*pro_path).second[n].start_time)
-            || ((*path).second[k].end_time < (*pro_path).second[n].end_time + length_time && (*path).second[k].end_time >(*pro_path).second[n].start_time))
+        if ((GN_point->start_time < point_pro->end_time + length_time && GN_point->start_time >point_pro->start_time)
+            || (GN_point->end_time < point_pro->end_time + length_time && GN_point->end_time >point_pro->start_time))
         {
             auto pro_next = &(*pro_path).second[(*pro_path).second[n].index+1];
             auto GN_pointg = &(*path).second[k - 1];
             if (GN_pointg->GN.index != pro_next->path.target_index
                 &&GN_pointg->path.target_index == pro_next->GN.index) {//碰撞路段后两车走不同路
-                double t = (*pro_path).second[n].end_time - ((((*path).second[k].path.leng / (*pro_path).first.car_v) + fabs((*path).second[k].start_time +(*pro_path).second[n].start_time)) / 2);
+                double t = point_pro->end_time - (((GN_point->path.leng / (*pro_path).first.car_v) + fabs(GN_point->start_time + point_pro->start_time)) / 2);
                 
-                double set_time = fabs(pro_next->end_time - (*path).second[k].start_time) + t;//计算后移时间
+                double set_time = fabs(pro_next->end_time - GN_point->start_time) + t;//计算后移时间
                 cout <<"节点冲突执行等待" << endl;
                 for (uint m = k-1; m < (*path).second.size(); m++)//后续的点全部向后
                 {
@@ -633,18 +634,38 @@ ASplanner::pathList ASplanner::Generator::node_conflict(car_path* path,uint k ,c
             }
         }
     }
-    /*if ((*path).second[k].GN.index != point_pro->path.source_index
-        && (*path).second[k].path.target_index == point_pro->path.target_index) {
-        double del_time = fabs((*path).second[k].end_time - point_pro->end_time);
-         const double* length = NULL;
-        if (pro_car->type == 0) { length = &agv_length; }
+    if (GN_point->GN.index != point_pro->path.source_index // 两条路起点不一样
+        && (*path).second[k].path.target_index == point_pro->path.target_index)//目标点相同
+    {
+        const double* car_length = NULL;
+        if (path->first.type == 0) { car_length = &agv_length; }
+        else{car_length = &fork_length;}
+
+        double del_time = GN_point->end_time - point_pro->end_time;//计算到达同一节点的时间差
+
+        if (del_time < 0)//优先级低的车先到达目标节点
+        {
+            if ((*car_length) / path->first.car_v > (-del_time))
+            {
+                //后车执行等待
+            }
+        }
+        else {
+            
+        
+        }
+
+
+        const double* length = new const double;
+        length = NULL;
+        if (pro_path->first.type == 0) { length = &agv_length; }
         else { length = &fork_length; }
-        if (del_time <(*length) /pro_car->car_v) {
+        if (del_time <(*length) / pro_path->first.car_v) {
             for (uint m = k; k < (*path).second.size(); k++)
             {
                 if (m == k) {
-                    (*path).second[k].end_time += (*length) / pro_car->car_v;
-                    (*path).second[k].spend_time += (*length) / pro_car->car_v;
+                    (*path).second[k].end_time += (*length) / pro_path->first.car_v;
+                    (*path).second[k].spend_time += (*length) / pro_path->first.car_v;
                 }
                 else {
                     (*path).second[m].end_time += (*length) / pro_car->car_v;
@@ -652,7 +673,7 @@ ASplanner::pathList ASplanner::Generator::node_conflict(car_path* path,uint k ,c
                 }
             }
         }
-    }*/
+    }
     return (*path).second;
 }
 ASplanner::pathList ASplanner::Generator::station_is_vechel(uint k,uint pro_size,path_point* point_pro, pair<Car_config,pathList>* path, vector<G_Node>* GNs)
