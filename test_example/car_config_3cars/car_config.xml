@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<model version="0.0.4" name="unnamed">
+    <agv name="AGV-0001" start_point="4-1-0" end_point="4-17-0" >    
+    </agv>
+    <agv name="AGV-0002" start_point="5-6-0" end_point="4-3-1" >    
+    </agv>
+    <agv name="AGV-0003" start_point="4-21-5" end_point="3-8-0" >    
+    </agv>
+    <agv name="AGV-0004" start_point="4-1-0" end_point="4-27-0" >    
+    </agv>
+    <agv name="AGV-0005" start_point="4-27-0" end_point="4-1-0" >    
+    </agv>
+    <agv name="AGV-0006" start_point="5-10-0" end_point="4-1-0" >    
+    </agv>
+    <agv name="AGV-0007" start_point="5-6-0" end_point="3-5-0" >    
+    </agv>
+    <agv name="AGV-0008" start_point="4-13-0" end_point="3-7-0" >    
+    </agv>
+    <agv name="AGV-0009" start_point="4-22-5" end_point="3-6-0" >    
+    </agv>
+    <agv name="AGV-0010" start_point="1-2-0" end_point="1-2-3" >    
+    </agv>
+</model>

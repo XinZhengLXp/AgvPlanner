@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<model version="0.0.4" name="unnamed">
+    <agv name="AGV-0001" start_point="4-1-0" end_point="4-17-0" >    
+    </agv>
+    <agv name="AGV-0002" start_point="5-6-0" end_point="4-3-1" >    
+    </agv>
+    <agv name="AGV-0003" start_point="4-22-5" end_point="5-8-0" >    
+    </agv>
+    <agv name="AGV-0004" start_point="4-17-0" end_point="4-1-0" >    
+    </agv>
+	
+</model>

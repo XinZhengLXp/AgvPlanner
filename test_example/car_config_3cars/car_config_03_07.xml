@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<model version="0.0.4" name="unnamed">
+    <agv name="AGV-0001" start_point="1-2-2" end_point="5-17-5" type="0" car_v="1.0">    
+    </agv>
+    <agv name="AGV-0002" start_point="1-1-1" end_point="5-17-4" type="0" car_v="1.0">    
+    </agv>
+    <agv name="AGV-0003" start_point="2-4-1" end_point="5-17-3" type="0" car_v="1.0">    
+    </agv>
+</model>
