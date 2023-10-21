@@ -560,6 +560,23 @@ ASplanner:: car_path ASplanner::Generator::colliding_conflict(car_path* path, ui
             [        ]    前车*/
         {
             //找到分叉路，让优先级高的车先走
+            //向前遍历容器
+            for (uint ii=0;ii < k && ii < n;ii++)//取最小值
+            {
+                if (path->second[k - ii].GN.index != pro_path->second[n - ii].GN.index)
+                {
+                    double wait_time=pro_path->second[n - ii].end_time - path->second[n - ii].start_time;
+                    for(uint m=n-ii;m<path->second.size();m++)//后移时间窗
+                    { 
+                        path->second[m].start_time += wait_time;
+                        path->second[m].end_time += wait_time;
+                    }
+                    break;
+                }
+            }
+
+
+
         }
          else if (GN_point->start_time < point_pro->end_time && GN_point->start_time > point_pro->start_time
              && GN_point->end_time < point_pro->end_time && GN_point->end_time > point_pro->start_time
@@ -638,9 +655,11 @@ ASplanner::pathList ASplanner::Generator::node_conflict(car_path* path,uint k ,c
         && (*path).second[k].path.target_index == point_pro->path.target_index)//目标点相同
     {
         const double* car_length = NULL;
+        const double* pro_car_length = NULL;
         if (path->first.type == 0) { car_length = &agv_length; }
         else{car_length = &fork_length;}
-
+        if (pro_path->first.type == 0) { pro_car_length = &agv_length; }
+        else { pro_car_length = &fork_length; }
         double del_time = GN_point->end_time - point_pro->end_time;//计算到达同一节点的时间差
 
         if (del_time < 0)//优先级低的车先到达目标节点
@@ -650,8 +669,13 @@ ASplanner::pathList ASplanner::Generator::node_conflict(car_path* path,uint k ,c
                 //后车执行等待
             }
         }
-        else {
+        else {   //优先级高的车先到达
+            if ((*pro_car_length / pro_path->first.car_v) > del_time) { //时间没错开
             
+            }
+            else {//时间错开了
+            
+            }
         
         }
 
@@ -668,8 +692,8 @@ ASplanner::pathList ASplanner::Generator::node_conflict(car_path* path,uint k ,c
                     (*path).second[k].spend_time += (*length) / pro_path->first.car_v;
                 }
                 else {
-                    (*path).second[m].end_time += (*length) / pro_car->car_v;
-                    (*path).second[m].start_time += (*length) / pro_car->car_v;
+                    (*path).second[m].end_time += (*length) / pro_path->first.car_v;
+                    (*path).second[m].start_time += (*length) / pro_path->first.car_v;
                 }
             }
         }
