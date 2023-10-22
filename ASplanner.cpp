@@ -159,20 +159,20 @@ double ASplanner::Generator::time_window(vector<pair<Car_config,pathList>>* path
                     for (uint n = 0; n < (*paths)[j].second.size();n++)//优先级更高的轨迹点
                     {
                        // 节点冲突
-                        if ((*paths)[j].second.size() >2 ) {
+                       /* if ((*paths)[j].second.size() >2 ) {
                             pathList new_node_c_way = node_conflict(&(*paths)[i],k,&(*paths)[j],n, GNs);
                             (*paths)[i].second = new_node_c_way;
-                        }
+                        }*/
 
                         //相向冲突
-                        if ((*paths)[i].second.size() > 2)
+                       /* if ((*paths)[i].second.size() > 2)
                         {   pathList new_way=opposing_conflict(&(*paths)[i], k, &(*paths)[j], n, GNs);
                             if(new_way.size()!=0){
                                 (*paths)[i].second = new_way;
                                 flag = true;
                                 break;
                             } 
-                        }
+                        }*/
                         /*pathList new_way = station_is_vechel(k, pro_size, &point_pro, &(*paths)[i], GNs);
                         if (new_way.size() != 0)
                         {
@@ -181,21 +181,23 @@ double ASplanner::Generator::time_window(vector<pair<Car_config,pathList>>* path
                             break;
                         }*/
                         //冲突集判断及其策略
-                        pathList new_collsion_way = collsion_collection(&(*paths)[i], k, &(*paths)[j], n, GNs);
+                        /*pathList new_collsion_way = collsion_collection(&(*paths)[i], k, &(*paths)[j], n, GNs);
                         if (new_collsion_way.size() != 0)
                         {
                             (*paths)[i].second = new_collsion_way;
                             flag = true;
                             break;
-                        }
-                        
+                        }*/
+
+                        //同向冲突
                         car_path new_colliding_way = colliding_conflict(&(*paths)[i], k, &(*paths)[j], n, GNs);
-                        if (new_collsion_way.size() != 0)
+                        if (new_colliding_way.second.size() !=0)
                         {
                             (*paths)[i] = new_colliding_way;
                             flag = true;
                             break;
                         }
+
                     }
                 }//车m
             }//车i的k
@@ -371,8 +373,8 @@ ASplanner::pathList ASplanner::Generator::opposing_conflict(car_path* path, uint
             || ((*path).second[k].end_time < point_pro->end_time  && (*path).second[k].end_time > point_pro->start_time))
         {
             size_t path_size = path->second.size();
-            int start_index = ((*path).second[path_size - 1].GN.index);  //最后一个元素索引号地址
-            int end_index = ((*path).second[0].GN.index);
+            int end_index = ((*path).second[path_size - 1].GN.index);  //最后一个元素索引号地址
+            int start_index = ((*path).second[0].GN.index);
             auto GN_pointg = &(*path).second[k - 1];
 
             for (auto it = (*GNs).begin(); it != (*GNs).end(); it++)//删除碰撞路段的目标点
@@ -395,7 +397,6 @@ ASplanner::pathList ASplanner::Generator::opposing_conflict(car_path* path, uint
             new_way = (*path).second;
         }
     }
-    
     return new_way;
 }
 //冲突集
@@ -537,47 +538,44 @@ ASplanner::pathList ASplanner::Generator::init_time_windows(pair<Car_config,path
 //同向冲突
 ASplanner:: car_path ASplanner::Generator::colliding_conflict(car_path* path, uint k, car_path* pro_path, uint n, vector<G_Node>* GNs)
 {
-    auto GN_point = &((*path).second[k]);
-    auto point_pro = &((*pro_path).second[n]);
-
-    if (GN_point->GN.index == point_pro->GN.index &&
-        GN_point->path.target_index == point_pro->path.target_index
+    car_path new_path = {};
+    auto GN_point = &(*path).second[k];
+    auto point_pro = &(*pro_path).second[n];
+    if(GN_point->GN.index == point_pro->GN.index 
+        &&GN_point->path.target_index == point_pro->path.target_index
+        &&path->second.size() >2 && pro_path->second.size()>2
+        &&k!=0 && n!=0
+        )
         //在此不考虑最后一节路，实际中不会发生
-         )
-    {   //后车跟前车
-        //if ((*path).second.size() > 2 && k< (*path).second.size()-2)
-        //{//小车i在此段路末尾执行等待了，优先级高的是否不用执行等待而撞上
-        //    if ((*path).second[k].end_time < point_pro->end_time  //比前车早结束
-        //        && (*path).second[k].end_time != (*path).second[k + 1].start_time//但是在这段路段尾执行等待了
-        //        && pro_next->start_time < (*path).second[k + 1].start_time
-
-        //        ) {
-        //    }
-        //}
-        if (GN_point->start_time < point_pro->start_time
-            && GN_point->end_time > point_pro->end_time && GN_point->end_time > point_pro->start_time
-             ) 
-             /* [ ]       我
-            [        ]    前车*/
-        {
-            //找到分叉路，让优先级高的车先走
+    {   
+        if((GN_point->start_time) < (point_pro->start_time)
+            && (GN_point->end_time) > (point_pro->end_time)
+            && (GN_point->end_time) > (point_pro->start_time)
+            && path->second[k-1].end_time < pro_path->second[n-1].end_time
+            )
+        {   //找到分叉路，让优先级高的车先走
             //向前遍历容器
             for (uint ii=0;ii < k && ii < n;ii++)//取最小值
             {
-                if (path->second[k - ii].GN.index != pro_path->second[n - ii].GN.index)
+                if ((*path).second[k - ii].GN.index != (*pro_path).second[n - ii].GN.index
+                    && (*path).second[k - ii].path.target_index== (*pro_path).second[n - ii].path.target_index
+                    )
                 {
-                    double wait_time=pro_path->second[n - ii].end_time - path->second[n - ii].start_time;
-                    for(uint m=n-ii;m<path->second.size();m++)//后移时间窗
+                    double wait_time= ((*path).second[n - ii].end_time) - ((*path).second[n - ii].start_time);
+                    for(uint u=(k-ii); u < ((*path).second.size());u++)//后移时间窗
                     { 
-                        path->second[m].start_time += wait_time;
-                        path->second[m].end_time += wait_time;
+                        (*path).second[u].start_time += wait_time;
+                        (*path).second[u].end_time += wait_time;
                     }
+                    new_path = (*path);
                     break;
                 }
             }
         }
-         else if (GN_point->start_time < point_pro->end_time && GN_point->start_time > point_pro->start_time
-             && GN_point->end_time < point_pro->end_time && GN_point->end_time > point_pro->start_time
+         else if (GN_point->start_time < point_pro->end_time 
+             && GN_point->start_time > point_pro->start_time
+             && GN_point->end_time < point_pro->end_time 
+             && GN_point->end_time > point_pro->start_time
              ) {
             //采取后车减速
             cout <<"减速执行等待。" << (*path).first.car_v << "m/s减速为" << pro_path->first.car_v << "m/s" << endl;
@@ -589,9 +587,10 @@ ASplanner:: car_path ASplanner::Generator::colliding_conflict(car_path* path, ui
                 moderate_time += (*path).second[m].spend_time;
                 (*path).second[m].end_time = moderate_time;
             }
+            new_path = (*path);
         }
     }
-    return (*path);
+    return new_path;
 }
 
 //节点冲突
@@ -697,6 +696,13 @@ ASplanner::pathList ASplanner::Generator::node_conflict(car_path* path,uint k ,c
     //}
     return (*path).second;
 }
+ASplanner::pathList ASplanner::Generator::mini_distance(car_path* path, uint k, car_path* pro_path, uint n, vector<G_Node>* GNs)
+{
+
+    return  path->second;
+}
+
+
 ASplanner::pathList ASplanner::Generator::station_is_vechel(uint k,uint pro_size,path_point* point_pro, pair<Car_config,pathList>* path, vector<G_Node>* GNs)
 {
     pathList new_way = {};

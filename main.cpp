@@ -69,7 +69,7 @@ int  findpoint(const char* point)
 int main()
 {
     /*std::string inputFileName = "./test_example/car_config_4cars/car_config_04_01.xml";*/
-    std::string inputFileName = "./config/car_config_01.xml";
+    std::string inputFileName = "./config/car_config.xml";
     std::size_t found = inputFileName.find_last_of(".");
     std::string outputFileName = inputFileName.substr(0, found);
     char* p = &inputFileName[0];
@@ -117,7 +117,7 @@ int main()
     }
 
     ifstream ifsc;
-    ifsc.open("./file/collsion.txt", ios::in);
+    ifsc.open("./file/output.txt", ios::in);
     char bufc[1024];
     while (ifsc.getline(bufc, sizeof(bufc)))
     {

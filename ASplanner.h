@@ -100,6 +100,7 @@ namespace  ASplanner
             car_path colliding_conflict(car_path* path, uint k, car_path* pro_path, uint n, vector<G_Node>* GNs);
             pathList node_conflict(car_path* path,uint k, car_path* pro_path,uint n, vector<G_Node>* GNs);
             pathList station_is_vechel(uint k, uint pro_size, path_point* point_pro, pair<Car_config, pathList>* path, vector<G_Node>* GNs);
+            pathList mini_distance(car_path* path, uint k, car_path* pro_path, uint n, vector<G_Node>* GNs);
             //int time_window_dan(vector<pathList>* paths, int count, vector<G_Node>* GNs, vector<Gdge_property>* GEs);
             //int A_star_time_window(vector<pathList>* paths, G_Node source_, G_Node target_, vector<G_Node>* GNs, vector<Gdge_property>* GEs);
             void addCollision(Vec2i coordinates_);
