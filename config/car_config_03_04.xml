@@ -5,6 +5,5 @@
     </agv>
     <agv name="AGV-0002" start_point="1-2-3" end_point="5-29-5" type="0" car_v="0.08">    
     </agv>
-	<agv name="AGV-0003" start_point="7-5-0" end_point="4-5-1" type="1" car_v="0.08">    
-    </agv>
+	
 </model>
