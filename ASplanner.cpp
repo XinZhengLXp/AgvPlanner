@@ -5,8 +5,8 @@
 
 using namespace std;
 using namespace std::placeholders;
-const double fork_length = 1.0;
-const double agv_length = 0.5;
+const double fork_length = 0.5;
+const double agv_length = 0.2;
 const double fork_acc =0.8;
 const double agv_acc = 1.0;
 const double de_time =2.0;   
@@ -159,20 +159,20 @@ double ASplanner::Generator::time_window(vector<pair<Car_config,pathList>>* path
                     for (uint n = 0; n < (*paths)[j].second.size();n++)//优先级更高的轨迹点
                     {
                        // 节点冲突
-                       /* if ((*paths)[j].second.size() >2 ) {
+                        if ((*paths)[j].second.size() >2 ) {
                             pathList new_node_c_way = node_conflict(&(*paths)[i],k,&(*paths)[j],n, GNs);
                             (*paths)[i].second = new_node_c_way;
-                        }*/
+                        }
 
                         //相向冲突
-                       /* if ((*paths)[i].second.size() > 2)
+                        if ((*paths)[i].second.size() > 2)
                         {   pathList new_way=opposing_conflict(&(*paths)[i], k, &(*paths)[j], n, GNs);
                             if(new_way.size()!=0){
                                 (*paths)[i].second = new_way;
                                 flag = true;
                                 break;
                             } 
-                        }*/
+                        }
                         /*pathList new_way = station_is_vechel(k, pro_size, &point_pro, &(*paths)[i], GNs);
                         if (new_way.size() != 0)
                         {
@@ -181,13 +181,13 @@ double ASplanner::Generator::time_window(vector<pair<Car_config,pathList>>* path
                             break;
                         }*/
                         //冲突集判断及其策略
-                        /*pathList new_collsion_way = collsion_collection(&(*paths)[i], k, &(*paths)[j], n, GNs);
+                        pathList new_collsion_way = collsion_collection(&(*paths)[i], k, &(*paths)[j], n, GNs);
                         if (new_collsion_way.size() != 0)
                         {
                             (*paths)[i].second = new_collsion_way;
                             flag = true;
                             break;
-                        }*/
+                        }
 
                         //同向冲突
                         car_path new_colliding_way = colliding_conflict(&(*paths)[i], k, &(*paths)[j], n, GNs);
@@ -416,7 +416,13 @@ ASplanner::pathList ASplanner::Generator::collsion_collection(car_path* path, ui
         if ((GN_point->start_time < ((point_pro->end_time)/*+ length_time*/)
             && GN_point->start_time > point_pro->start_time)
             || (GN_point->end_time < ((point_pro->end_time) /*+ length_time*/)
-                && GN_point->end_time > point_pro->start_time))
+                && GN_point->end_time > point_pro->start_time)
+            ||((GN_point->start_time < ((point_pro->start_time)/*+ length_time*/)
+                && GN_point->end_time > point_pro->end_time)
+            ||((GN_point->start_time > ((point_pro->start_time)/*+ length_time*/)
+                && GN_point->end_time <  point_pro->end_time))
+                )
+            )
         {   
             auto GN_pointg = &((*path).second[0]);
             if (k != 0) {
@@ -541,17 +547,19 @@ ASplanner:: car_path ASplanner::Generator::colliding_conflict(car_path* path, ui
     car_path new_path = {};
     auto GN_point = &(*path).second[k];
     auto point_pro = &(*pro_path).second[n];
+   
     if(GN_point->GN.index == point_pro->GN.index 
         &&GN_point->path.target_index == point_pro->path.target_index
         &&path->second.size() >2 && pro_path->second.size()>2
         &&k!=0 && n!=0
         )
         //在此不考虑最后一节路，实际中不会发生
-    {   
-        if((GN_point->start_time) < (point_pro->start_time)
-            && (GN_point->end_time) > (point_pro->end_time)
-            && (GN_point->end_time) > (point_pro->start_time)
-            && path->second[k-1].end_time < pro_path->second[n-1].end_time
+    {
+        auto GN_pointg = &(*path).second[k-1];
+        auto point_prog = &(*pro_path).second[n-1];
+        if( //GN_point->GN.index==point_pro->GN.index
+            GN_pointg->end_time < point_prog->end_time
+            && GN_point->end_time > point_pro->end_time
             )
         {   //找到分叉路，让优先级高的车先走
             //向前遍历容器
@@ -595,7 +603,7 @@ ASplanner:: car_path ASplanner::Generator::colliding_conflict(car_path* path, ui
 
 //节点冲突
 ASplanner::pathList ASplanner::Generator::node_conflict(car_path* path,uint k ,car_path* pro_path,uint n ,vector<G_Node>* GNs)
-{
+{   
     auto GN_point = &(*path).second[k];
     auto point_pro = &(*pro_path).second[n];
     if (GN_point->path.source_index == point_pro->path.target_index //起点为前车的目标点

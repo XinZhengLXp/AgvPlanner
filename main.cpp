@@ -19,7 +19,8 @@ ifstream  fin;  //声明一个ofstream对象，用于输入文件
 //ofstream fout;  //声明一个ofstream对象，用以输出文件
 #pragma warning(disable:4996)
 vector<G_Node> GNs;
-vector<Gdge_property>GEs;
+
+vector<Gdge_property>GEs ;
 
 int  findpoint(const char* point)
 {
@@ -69,7 +70,7 @@ int  findpoint(const char* point)
 int main()
 {
     /*std::string inputFileName = "./test_example/car_config_4cars/car_config_04_01.xml";*/
-    std::string inputFileName = "./config/car_config.xml";
+    std::string inputFileName = "./config/car_config_10.xml";
     std::size_t found = inputFileName.find_last_of(".");
     std::string outputFileName = inputFileName.substr(0, found);
     char* p = &inputFileName[0];
@@ -79,12 +80,12 @@ int main()
     //读取车辆属性
     ofstream fout;
     fout.open(outputFileName + ".txt", ios::out); //打开car_plan.txt文件并进行输出
-
+    
     ofstream fout2;
     fout2.open(outputFileName + "_index.txt", ios::out);
     XMLElement* agv_titleElement = doc_agv.FirstChildElement();
     XMLElement* agv = agv_titleElement->FirstChildElement("agv");
-
+    GEs.reserve(620);
     ifstream ifse;
     ifse.open("./file/segment.txt", ios::in);
     char buf[1024];
@@ -156,6 +157,7 @@ int main()
     
     ifse.close();
     ifstream ifst;
+    GNs.reserve(300);
     ifst.open("./file/station.txt", ios::in);
     char buff[1024];
     while (ifst.getline(buff, sizeof(buff)))
@@ -197,7 +199,6 @@ int main()
         GNs.push_back(temp_GN);
     }
     ifst.close();
-
     ASplanner::Generator generator;
     //generator.setWorldSize({ 25, 25 });//设置地图大小,没有太大意义，可将此行注释掉
     generator.setHeuristic(ASplanner::Heuristic::euclidean);//测距函数，使用仍然是欧氏距离
@@ -288,6 +289,7 @@ int main()
         fout2 << "car" << i + 1 << ":" << endl;
     }
     fout2.close();
+    
 }
 
 
