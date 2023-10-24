@@ -70,13 +70,15 @@ int  findpoint(const char* point)
 int main()
 {
     /*std::string inputFileName = "./test_example/car_config_4cars/car_config_04_01.xml";*/
-    std::string inputFileName = "./config/car_config_03_01.xml";
+    std::string inputFileName = "./config/car_config.xml";
     std::size_t found = inputFileName.find_last_of(".");
     std::string outputFileName = inputFileName.substr(0, found);
     char* p = &inputFileName[0];
     auto start = std::chrono::high_resolution_clock::now();
     XMLDocument doc_agv;
-    doc_agv.LoadFile(p);
+    tinyxml2::XMLError if_success=doc_agv.LoadFile(p);
+    if (if_success != 0) { cout << "配置文件打开失败！"; system("pause"); }
+    doc_agv.Error();
     //读取车辆属性
     ofstream fout;
     fout.open(outputFileName + ".txt", ios::out); //打开car_plan.txt文件并进行输出
