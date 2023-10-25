@@ -15,8 +15,8 @@ using namespace tinyxml2;
 using namespace std;
 using namespace  ASplanner;
 vector<pair<Car_config,pathList>> GNLs;
-ifstream  fin;  //ÉùÃ÷Ò»¸öofstream¶ÔÏó£¬ÓÃÓÚÊäÈëÎÄ¼ş
-//ofstream fout;  //ÉùÃ÷Ò»¸öofstream¶ÔÏó£¬ÓÃÒÔÊä³öÎÄ¼ş
+ifstream  fin;  //å£°æ˜ä¸€ä¸ªofstreamå¯¹è±¡ï¼Œç”¨äºè¾“å…¥æ–‡ä»¶
+//ofstream fout;  //å£°æ˜ä¸€ä¸ªofstreamå¯¹è±¡ï¼Œç”¨ä»¥è¾“å‡ºæ–‡ä»¶
 #pragma warning(disable:4996)
 vector<G_Node> GNs;
 
@@ -28,9 +28,9 @@ int  findpoint(const char* point)
     const char* ptr = point;
     int x = 0;
     while (*ptr != '\0') {
-        char currentChar = *ptr; // Ê¹ÓÃ½âÒıÓÃ²Ù×÷·û»ñÈ¡µ±Ç°×Ö·û
+        char currentChar = *ptr; // ä½¿ç”¨è§£å¼•ç”¨æ“ä½œç¬¦è·å–å½“å‰å­—ç¬¦
         str[x] = currentChar;
-        ptr++; // Ö¸ÕëÖ¸ÏòÏÂÒ»¸ö×Ö·û
+        ptr++; // æŒ‡é’ˆæŒ‡å‘ä¸‹ä¸€ä¸ªå­—ç¬¦
         x++;
     }
     vector<string> s;
@@ -41,15 +41,15 @@ int  findpoint(const char* point)
         const char* ptr = token;
         int x = 0;
         while (*ptr != '\0') {
-            char currentChar = *ptr; // Ê¹ÓÃ½âÒıÓÃ²Ù×÷·û»ñÈ¡µ±Ç°×Ö·û
+            char currentChar = *ptr; // ä½¿ç”¨è§£å¼•ç”¨æ“ä½œç¬¦è·å–å½“å‰å­—ç¬¦
             str[x] = currentChar;
-            ptr++; // Ö¸ÕëÖ¸ÏòÏÂÒ»¸ö×Ö·û
+            ptr++; // æŒ‡é’ˆæŒ‡å‘ä¸‹ä¸€ä¸ªå­—ç¬¦
             x++;
         }
         s.push_back(str);
         token = strtok_s(NULL,"-", &next_token);
     }
-    //cout<<"ÆğÊ¼/Ä¿±êµã" << s[0] << "-" << s[1] << "-" << s[2] << endl;
+    //cout<<"èµ·å§‹/ç›®æ ‡ç‚¹" << s[0] << "-" << s[1] << "-" << s[2] << endl;
     vector<G_Node>::iterator it;
     int i = 0;
     for (it = GNs.begin(); it != GNs.end(); it++)
@@ -61,10 +61,10 @@ int  findpoint(const char* point)
         }
     }
     if (it == GNs.end()) {
-       std:: cout << "ÔªËØ²»´æÔÚ" << endl;
+       std:: cout << "å…ƒç´ ä¸å­˜åœ¨" << endl;
        exit(1);
     }
-    //cout <<"Ë÷ÒıºÅ£º"<< i << endl;
+    //cout <<"ç´¢å¼•å·ï¼š"<< i << endl;
     return i;
 }
 int main()
@@ -77,11 +77,11 @@ int main()
     auto start = std::chrono::high_resolution_clock::now();
     XMLDocument doc_agv;
     tinyxml2::XMLError if_success=doc_agv.LoadFile(p);
-    if (if_success != 0) { cout << "ÅäÖÃÎÄ¼ş´ò¿ªÊ§°Ü£¡"; system("pause"); }
+    if (if_success != 0) { cout << "é…ç½®æ–‡ä»¶æ‰“å¼€å¤±è´¥ï¼"; system("pause"); }
     doc_agv.Error();
-    //¶ÁÈ¡³µÁ¾ÊôĞÔ
+    //è¯»å–è½¦è¾†å±æ€§
     ofstream fout;
-    fout.open(outputFileName + ".txt", ios::out); //´ò¿ªcar_plan.txtÎÄ¼ş²¢½øĞĞÊä³ö
+    fout.open(outputFileName + ".txt", ios::out); //æ‰“å¼€car_plan.txtæ–‡ä»¶å¹¶è¿›è¡Œè¾“å‡º
     
     ofstream fout2;
     fout2.open(outputFileName + "_index.txt", ios::out);
@@ -103,7 +103,7 @@ int main()
             int x = 0;
             while (*ptr != '\0')
             {
-                char currentChar = *ptr; // Ê¹ÓÃ½âÒıÓÃ²Ù×÷·û»ñÈ¡µ±Ç°×Ö·û
+                char currentChar = *ptr; // ä½¿ç”¨è§£å¼•ç”¨æ“ä½œç¬¦è·å–å½“å‰å­—ç¬¦
                 st[x] = currentChar;
                 ptr++;
                 x++;
@@ -114,7 +114,7 @@ int main()
         temp_GE.source_index = atoi(s[1].c_str());
         temp_GE.target_index = atoi(s[0].c_str());
         temp_GE.leng = stod(s[2].c_str());
-        //cout << temp_GE.leng << endl;      doubleÀàĞÍ
+        //cout << temp_GE.leng << endl;      doubleç±»å‹
         GEs.push_back(temp_GE);
         s.clear();
     }
@@ -135,7 +135,7 @@ int main()
                 int x = 0;
                 while (*ptr != '\0')
                 {
-                    char currentChar = *ptr; // Ê¹ÓÃ½âÒıÓÃ²Ù×÷·û»ñÈ¡µ±Ç°×Ö·û
+                    char currentChar = *ptr; // ä½¿ç”¨è§£å¼•ç”¨æ“ä½œç¬¦è·å–å½“å‰å­—ç¬¦
                     st[x] = currentChar;
                     ptr++;
                     x++;
@@ -173,7 +173,7 @@ int main()
             int x = 0;
             while (*ptr != '\0')
             {
-                char currentChar = *ptr; // Ê¹ÓÃ½âÒıÓÃ²Ù×÷·û»ñÈ¡µ±Ç°×Ö·û
+                char currentChar = *ptr; // ä½¿ç”¨è§£å¼•ç”¨æ“ä½œç¬¦è·å–å½“å‰å­—ç¬¦
                 st[x] = currentChar;
                 ptr++;
                 x++;
@@ -191,7 +191,7 @@ int main()
         s.clear();
         for (auto GE : GEs)
         {
-            if (GE.source_index == temp_GN.index)//Ô´½ÚµãÆ¥Åä
+            if (GE.source_index == temp_GN.index)//æºèŠ‚ç‚¹åŒ¹é…
             {
                 temp_GN.link_edges.push_back(GE);
             }
@@ -200,12 +200,15 @@ int main()
     }
     ifst.close();
     ASplanner::Generator generator;
-    //generator.setWorldSize({ 25, 25 });//ÉèÖÃµØÍ¼´óĞ¡,Ã»ÓĞÌ«´óÒâÒå£¬¿É½«´ËĞĞ×¢ÊÍµô
-    generator.setHeuristic(ASplanner::Heuristic::euclidean);//²â¾àº¯Êı£¬Ê¹ÓÃÈÔÈ»ÊÇÅ·ÊÏ¾àÀë
+    //generator.setWorldSize({ 25, 25 });//è®¾ç½®åœ°å›¾å¤§å°,æ²¡æœ‰å¤ªå¤§æ„ä¹‰ï¼Œå¯å°†æ­¤è¡Œæ³¨é‡Šæ‰
+    generator.setHeuristic(ASplanner::Heuristic::euclidean);//æµ‹è·å‡½æ•°ï¼Œä½¿ç”¨ä»ç„¶æ˜¯æ¬§æ°è·ç¦»
    
     int count = 1;
-    while (agv) //ÂÖÑ¯£¬¶ÁÈ¡³µÁ¾ĞÅÏ¢
+    while (agv) //è½®è¯¢ï¼Œè¯»å–è½¦è¾†ä¿¡æ¯
     {
+        vector<const char*> middle_points;//ä¸­é—´èŠ‚ç‚¹ä¿¡æ¯å­˜åœ¨è¿™é‡Œ
+        XMLElement* middle_point = agv->FirstChildElement("middle_point");
+        
         Car_config car = {};
         pair<Car_config,pathList> temp_path;
         const XMLAttribute* start_point = agv->FindAttribute("start_point");
@@ -219,11 +222,11 @@ int main()
         car.index = count;
        // cout << "car.type=" << car.type << " " << "car.car_v=" << car.car_v << " " << endl;
         temp_path.first = car;
-       // cout << "ÖÕµãË÷Òı" << findpoint(end_point->Value()) << endl;
+       // cout << "ç»ˆç‚¹ç´¢å¼•" << findpoint(end_point->Value()) << endl;
         //{    int index_forward;
-        //     int index_backward;//ÏÂ¸öµã
+        //     int index_backward;//ä¸‹ä¸ªç‚¹
         //     double x, y;
-        //     //ÒÔÉÏĞÅÏ¢ĞèÒª¸ø³ö
+        //     //ä»¥ä¸Šä¿¡æ¯éœ€è¦ç»™å‡º
         //     double length_for=pow(std::pow(GNs[index_forward].coordinates.x,2)+ std::pow(GNs[index_forward].coordinates.y, 2),0.5);
         //     double length_back = pow(std::pow(GNs[index_backward].coordinates.x, 2) + std::pow(GNs[index_backward].coordinates.y, 2), 0.5);
         //     Gdge_property temp1 = {true,0,length_for,GNs.size()+1,index_forward };
@@ -249,17 +252,26 @@ int main()
         //    pathList pathsec= generator.findPath(GNs[car.target_index], GNs[findpoint(end_point->Value())], &GNs);
         //    std::merge(pathone.begin(), pathone.end(), pathsec.begin(), pathsec.end(), temp_path.second.begin());
         //}
+        uint i = 0;//ç¬¬iä¸ªä¸­é—´èŠ‚ç‚¹,éå†ç»“æŸæ—¶ä¸€å…±æœ‰iä¸ªä¸­é—´èŠ‚ç‚¹
+        while (middle_point)
+        {
+            const XMLAttribute* middlepoint = middle_point->FindAttribute("name");
+            middle_points.push_back(middlepoint->Value());
+            std::cout<<middle_points[i]<<endl;
+            i++;
+            middle_point = middle_point->NextSiblingElement("middle_point");
+        }
         
         temp_path.second = generator.findPath(GNs[findpoint(start_point->Value())], GNs[findpoint(end_point->Value())], &GNs);
-        GNLs.push_back(temp_path);  //Ã¿Ò»¸öAGVÉú³ÉµÄ¹ì¼£
+        GNLs.push_back(temp_path);  //æ¯ä¸€ä¸ªAGVç”Ÿæˆçš„è½¨è¿¹
         agv = agv->NextSiblingElement("agv");
         count++;
     }
-    //¼ÆËãÊ±¼ä´°
+    //è®¡ç®—æ—¶é—´çª—
     generator.time_window(&GNLs, &GNs);
     auto end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> duration = end - start;
-    std::cout << "³ÌĞòÔËĞĞÊ±¼ä£º" << duration.count() << "Ãë" << std::endl;
+    std::cout << "ç¨‹åºè¿è¡Œæ—¶é—´ï¼š" << duration.count() << "ç§’" << std::endl;
     for (uint i = 0; i < GNLs.size(); i++)
     {
         for (auto& GN_point : GNLs[i].second) {
