@@ -257,7 +257,6 @@ int main()
         {
             const XMLAttribute* middlepoint = middle_point->FindAttribute("name");
             middle_points.push_back(middlepoint->Value());
-            std::cout<<middle_points[i]<<endl;
             i++;
             middle_point = middle_point->NextSiblingElement("middle_point");
         }
