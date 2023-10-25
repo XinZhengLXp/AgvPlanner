@@ -5,14 +5,15 @@
 
 using namespace std;
 using namespace std::placeholders;
-const double mini_distance = 0.3;
-const double fork_length = 0.5;
-const double agv_length = 0.2;
+const double mini_distance = 1.0;
+const double fork_length = 2.0;
+const double agv_length = 0.8;
 const double fork_acc =0.8;
 const double agv_acc = 1.0;
 const double de_time =2.0;   
 const double wheel_time=1.0;
-bool  ASplanner::Vec2i::operator == (const Vec2i& coordinates_)
+using namespace ASplanner;
+bool  Vec2i::operator == (const Vec2i& coordinates_)
 {
     return (x == coordinates_.x && y == coordinates_.y);
 }
@@ -78,11 +79,11 @@ void  ASplanner::Generator::clearCollisions()
     walls.clear();
 }
 
-double ASplanner::Generator::time_window(vector<pair<Car_config,pathList>>* paths, vector<G_Node>* GNs)
+double ASplanner::Generator::conflict_check(vector<pair<Car_config,pathList>>* paths, vector<G_Node>* GNs)
 {
     vector<pair<Car_config, ID>>collection;
     double time_cnt = 0;
-    for (auto& path : *paths) {//ç²—ç”»æ—¶é—´çª—
+    for (auto& path : *paths) {//´Ö»­Ê±¼ä´°
         path.second = init_time_windows(&path,GNs);
     }
 
@@ -105,9 +106,9 @@ double ASplanner::Generator::time_window(vector<pair<Car_config,pathList>>* path
     //    for(j;j<(*paths)[i].second.size();j++)
     //    { 
     //        if ((*paths)[i].second[j].GN.name.last_id == 0
-    //            && (*paths)[i].second[j].index !=-1)//è¯¥ç‚¹ä¸ä¸ºæœ€åä¸€ä¸ªç‚¹
+    //            && (*paths)[i].second[j].index !=-1)//¸Ãµã²»Îª×îºóÒ»¸öµã
     //        {
-    //            if ((*paths)[i].second[j+1].GN.name.last_id != 0)//ä¸‹ä¸€ä¸ªç‚¹ä¸ºæ–­å¤´è·¯
+    //            if ((*paths)[i].second[j+1].GN.name.last_id != 0)//ÏÂÒ»¸öµãÎª¶ÏÍ·Â·
     //            {
     //                flag = true;
     //                break;
@@ -136,8 +137,8 @@ double ASplanner::Generator::time_window(vector<pair<Car_config,pathList>>* path
             } 
         }
     }*/
-    //cout << "è½¦ä¸€é•¿åº¦ï¼š" << (*paths)[0].second.size() << endl;
-    for (uint i = 0; i < (*paths).size(); i++) {    // iå°è½¦æ•°é‡
+    //cout << "³µÒ»³¤¶È£º" << (*paths)[0].second.size() << endl;
+    for (uint i = 0; i < (*paths).size(); i++) {    // iĞ¡³µÊıÁ¿
         if (i == 0)
         {
             continue;
@@ -148,31 +149,31 @@ double ASplanner::Generator::time_window(vector<pair<Car_config,pathList>>* path
         while (flag) {
             flag = false;
             abc++;
-            for (uint k = 0; k < (*paths)[i].second.size() && !flag; k++)//æ¯”å¯¹ï¼Œå¾…è°ƒæ•´ç‚¹ã€‚k:ç¬¬iè¾†å°è½¦çš„è·¯å¾„èŠ‚ç‚¹ä½æ•°
+            for (uint k = 0; k < (*paths)[i].second.size() && !flag; k++)//±È¶Ô£¬´ıµ÷Õûµã¡£k:µÚiÁ¾Ğ¡³µµÄÂ·¾¶½ÚµãÎ»Êı
             {
-                auto GN_point = &((*paths)[i].second[k]);//iè½¦çš„ç¬¬kä¸ªèŠ‚ç‚¹
+                auto GN_point = &((*paths)[i].second[k]);//i³µµÄµÚk¸ö½Úµã
                 for (uint j = 0; j < i; j++)
                 {
                     if (flag)
                     {
                         break;
                     }
-                    for (uint n = 0; n < (*paths)[j].second.size(); n++)//ä¼˜å…ˆçº§æ›´é«˜çš„è½¨è¿¹ç‚¹
+                    for (uint n = 0; n < (*paths)[j].second.size(); n++)//ÓÅÏÈ¼¶¸ü¸ßµÄ¹ì¼£µã
                     {
                         
-                            /*pathList new_mini_way = mini_distance_between_vechels(&(*paths)[i], k, &(*paths)[j], n, GNs);
-                            if (new_mini_way.size() != 0)
+                            bool dis_flag = mini_distance_between_vechels(&(*paths)[i], k, &(*paths)[j], n, GNs);
+                            if (dis_flag)
                             {
-                                (*paths)[i].second = new_mini_way;
-                            }*/
+                                flag = true;
+                                break;
+                            }
 
-                       // èŠ‚ç‚¹å†²çª
+                       // ½Úµã³åÍ»
                         if ((*paths)[j].second.size() >2 ) {
-                            pathList new_node_c_way = node_conflict(&(*paths)[i],k,&(*paths)[j],n, GNs);
-                            (*paths)[i].second = new_node_c_way;
+                             node_conflict(&(*paths)[i],k,&(*paths)[j],n, GNs);
                         }
 
-                        //åŒå‘å†²çª
+                        //Í¬Ïò³åÍ»
                         car_path new_colliding_way = colliding_conflict(&(*paths)[i], k, &(*paths)[j], n, GNs);
                         if (new_colliding_way.second.size() !=0)
                         {
@@ -180,7 +181,7 @@ double ASplanner::Generator::time_window(vector<pair<Car_config,pathList>>* path
                             flag = true;
                             break;
                         }
-                        //å†²çªé›†åˆ¤æ–­åŠå…¶ç­–ç•¥
+                        //³åÍ»¼¯ÅĞ¶Ï¼°Æä²ßÂÔ
                         pathList new_collsion_way = collsion_collection(&(*paths)[i], k, &(*paths)[j], n, GNs);
                         if (new_collsion_way.size() != 0)
                         {
@@ -188,7 +189,7 @@ double ASplanner::Generator::time_window(vector<pair<Car_config,pathList>>* path
                             flag = true;
                             break;
                         }
-                        ////ç›¸å‘å†²çª
+                        ////ÏàÏò³åÍ»
                         if ((*paths)[i].second.size() > 2)
                         {
                             pathList new_way = opposing_conflict(&(*paths)[i], k, &(*paths)[j], n, GNs);
@@ -199,11 +200,11 @@ double ASplanner::Generator::time_window(vector<pair<Car_config,pathList>>* path
                             }
                         }
                     }
-                }//è½¦m
-            }//è½¦içš„k
-        }//whileå¾ªç¯
-        std::cout<<i+1<<" è½¦" << "whileå¾ªç¯æ¬¡æ•° ï¼š" << abc << endl;
-        for (auto t = GNs->begin(); t != GNs->end(); t++)//æ¢å¤åœ°å›¾é“è·¯ä¿¡æ¯
+                }//³µm
+            }//³µiµÄk
+        }//whileÑ­»·
+        std::cout<<i+1<<" ³µ" << "whileÑ­»·´ÎÊı £º" << abc << endl;
+        for (auto t = GNs->begin(); t != GNs->end(); t++)//»Ö¸´µØÍ¼µÀÂ·ĞÅÏ¢
         {
             for (auto edge : t->link_edges)
             {
@@ -216,52 +217,52 @@ double ASplanner::Generator::time_window(vector<pair<Car_config,pathList>>* path
 ASplanner::pathList  ASplanner::Generator::findPath(G_Node source_, G_Node target_, vector<G_Node>* GNs)
 {
     Node* current = nullptr;
-    NodeSet openSet, closedSet; //openSetå¾…é€‰æ‹©å¶èŠ‚ç‚¹,closedSetå·²ç»è¢«é€‰æ‹©çš„éå¶èŠ‚ç‚¹
-    openSet.reserve(100);       //ç”³è¯·100ä¸ªå…ƒç´ çš„å†…å­˜ç©ºé—´
-    closedSet.reserve(100);     //ç”³è¯·100ä¸ªå…ƒç´ çš„å†…å­˜ç©ºé—´
+    NodeSet openSet, closedSet; //openSet´ıÑ¡ÔñÒ¶½Úµã,closedSetÒÑ¾­±»Ñ¡ÔñµÄ·ÇÒ¶½Úµã
+    openSet.reserve(100);       //ÉêÇë100¸öÔªËØµÄÄÚ´æ¿Õ¼ä
+    closedSet.reserve(100);     //ÉêÇë100¸öÔªËØµÄÄÚ´æ¿Õ¼ä
     openSet.push_back(new Node(source_));
 
     while (!openSet.empty()) 
-    {//æœ€å¤§å¯æ¢ç´¢é•¿åº¦
+    {//×î´ó¿ÉÌ½Ë÷³¤¶È
         auto current_it = openSet.begin();
         current = *current_it;
         for (auto it = openSet.begin(); it != openSet.end(); it++)
         {
             auto node = *it;
-            //æŸ¥æ‰¾å½“å‰èŠ‚ç‚¹é™„è¿‘æœ€çŸ­è·¯å¾„çš„èŠ‚ç‚¹å¹¶å°†å…¶æ·»åŠ åˆ°å¶èŠ‚ç‚¹
+            //²éÕÒµ±Ç°½Úµã¸½½ü×î¶ÌÂ·¾¶µÄ½Úµã²¢½«ÆäÌí¼Óµ½Ò¶½Úµã
             if (node->getScore() <= current->getScore()) 
             {
                 current = node;
-               // cout << "èŠ‚ç‚¹ "<<*it << " " << current->GN.name.main_id << "-" << current->GN.name.sec_id << "-" << current->GN.name.last_id << endl;
+               // cout << "½Úµã "<<*it << " " << current->GN.name.main_id << "-" << current->GN.name.sec_id << "-" << current->GN.name.last_id << endl;
                 current_it = it;
             }
         }
-        //å½“å‰çš„åæ ‡ç­‰äºç›®æ ‡èŠ‚ç‚¹åæ ‡ï¼Œå³æ‰¾åˆ°ç›®æ ‡èŠ‚ç‚¹
+        //µ±Ç°µÄ×ø±êµÈÓÚÄ¿±ê½Úµã×ø±ê£¬¼´ÕÒµ½Ä¿±ê½Úµã
         if (current->coordinates == target_.coordinates) {
             break;
         }
 
-        closedSet.push_back(current);   //å°†æ‰¾åˆ°çš„æœ€çŸ­è·¯å¾„çš„æœ€è¿‘èŠ‚ç‚¹å‹å…¥å®¹å™¨ï¼Œå³æ·»åŠ åˆ°å¶èŠ‚ç‚¹
-        openSet.erase(current_it);      //æ ‡è®°å·²ç»è¢«é€‰æ‹©çš„èŠ‚ç‚¹â€”â€”closedSetå·²ç»è¢«é€‰æ‹©çš„éå¶èŠ‚ç‚¹
+        closedSet.push_back(current);   //½«ÕÒµ½µÄ×î¶ÌÂ·¾¶µÄ×î½ü½ÚµãÑ¹ÈëÈİÆ÷£¬¼´Ìí¼Óµ½Ò¶½Úµã
+        openSet.erase(current_it);      //±ê¼ÇÒÑ¾­±»Ñ¡ÔñµÄ½Úµã¡ª¡ªclosedSetÒÑ¾­±»Ñ¡ÔñµÄ·ÇÒ¶½Úµã
         
-        for (auto edge : current->GN.link_edges)//autoå°†æŒ‡é’ˆç§»å‘å½“å‰èŠ‚ç‚¹çš„å‘¨å›´ç›¸é‚»èŠ‚ç‚¹
+        for (auto edge : current->GN.link_edges)//auto½«Ö¸ÕëÒÆÏòµ±Ç°½ÚµãµÄÖÜÎ§ÏàÁÚ½Úµã
         {
             if (edge.state) 
             {
-                if (findNodeOnList(closedSet, edge.target_index)) {//å·²æœç´¢è¿‡ï¼Œè·³è¿‡æ­¤ç‚¹
+                if (findNodeOnList(closedSet, edge.target_index)) {//ÒÑËÑË÷¹ı£¬Ìø¹ı´Ëµã
                     continue;
                 }
-                //è·¯æ®µé•¿åº¦ä»£è¡¨ä»£ä»·ï¼Œåœ¨è¿™é‡Œå¯ä»¥ä¿®æ”¹ä»£ä»·å‡½æ•°ï¼Œä¹Ÿå¯åŠ å…¥å…¶ä»–çš„ä¿¡æ¯ï¼Œç¬¦åˆè‡ªå·±éœ€æ±‚
+                //Â·¶Î³¤¶È´ú±í´ú¼Û£¬ÔÚÕâÀï¿ÉÒÔĞŞ¸Ä´ú¼Ûº¯Êı£¬Ò²¿É¼ÓÈëÆäËûµÄĞÅÏ¢£¬·ûºÏ×Ô¼ºĞèÇó
                 double totalCost = current->G + edge.leng;
-                Node* successor = findNodeOnList(openSet, edge.target_index);//æ˜¯å¦åœ¨å€™é€‰è·¯å¾„ï¼Œä¸åœ¨ï¼Œæ·»åŠ æ­¤æ–°ç‚¹ï¼›
+                Node* successor = findNodeOnList(openSet, edge.target_index);//ÊÇ·ñÔÚºòÑ¡Â·¾¶£¬²»ÔÚ£¬Ìí¼Ó´ËĞÂµã£»
                 if (successor == nullptr)
-                {//æ¢ç´¢æ–°ç‚¹
+                {//Ì½Ë÷ĞÂµã
                     successor = new Node((*GNs)[edge.target_index], current);
                     successor->G = totalCost;
                     successor->H = heuristic(successor->coordinates, target_.coordinates)/100;
                     openSet.push_back(successor);
                 }
-                else if (totalCost < successor->G) {//å¦‚æœæ¯”å·²æ‰¾åˆ°çš„ç‚¹ä»£ä»·è¿˜å°
+                else if (totalCost < successor->G) {//Èç¹û±ÈÒÑÕÒµ½µÄµã´ú¼Û»¹Ğ¡
                     successor->parent = current;
                     successor->G = totalCost;
                 }
@@ -270,34 +271,34 @@ ASplanner::pathList  ASplanner::Generator::findPath(G_Node source_, G_Node targe
     }
     G_NodeList path;
     pathList time_path;
-    while (current != nullptr) {//é“¾è¡¨è½®è¯¢
+    while (current != nullptr) {//Á´±íÂÖÑ¯
         path.push_back(current->GN);
         current = current->parent;
     }
-    reverse(path.begin(), path.end());//å€’å™
+    reverse(path.begin(), path.end());//µ¹Ğğ
     for (uint i = 0; i < path.size(); i++) {
-        path_point temp_t;      //è½¨è¿¹ç‚¹ç´¢å¼•
+        path_point temp_t;      //¹ì¼£µãË÷Òı
         temp_t.GN = path[i];
         if (i + 1 == path.size()) {
-            temp_t.index = -1;//ä»£è¡¨æœ€åä¸€ä¸ªç‚¹
+            temp_t.index = -1;//´ú±í×îºóÒ»¸öµã
         }
         else {
-            temp_t.index = i;//è½¨è¿¹ç‚¹ç´¢å¼•
+            temp_t.index = i;//¹ì¼£µãË÷Òı
             for (auto edge : temp_t.GN.link_edges) {
-                if (edge.target_index == path[i + 1].index)//è·¯å¾„åŒ¹é…
+                if (edge.target_index == path[i + 1].index)//Â·¾¶Æ¥Åä
                 {
-                    temp_t.path = edge;//æ‰¾åˆ°ç›®æ ‡è·¯å¾„
+                    temp_t.path = edge;//ÕÒµ½Ä¿±êÂ·¾¶
                 }
             }
         }
-        time_path.push_back(temp_t);    //å°†è·¯å¾„çš„çš„å„ä¸ªç«™ç‚¹å‹å…¥time_pathæ ˆä¸­
+        time_path.push_back(temp_t);    //½«Â·¾¶µÄµÄ¸÷¸öÕ¾µãÑ¹Èëtime_pathÕ»ÖĞ
     }
 
-    releaseNodes(openSet);  //é‡Šæ”¾æ ˆç©ºé—´
-    releaseNodes(closedSet);//é‡Šæ”¾æ ˆç©ºé—´
+    releaseNodes(openSet);  //ÊÍ·ÅÕ»¿Õ¼ä
+    releaseNodes(closedSet);//ÊÍ·ÅÕ»¿Õ¼ä
     if (time_path[time_path.size()-1].GN.index != target_.index)
     {
-        cout << "å¯»è·¯å¤±è´¥ï¼" << endl;
+        cout << "Ñ°Â·Ê§°Ü£¡" << endl;
         time_path = {};
     }
     return time_path;
@@ -313,7 +314,7 @@ ASplanner::Node* ASplanner::Generator::findNodeOnList(NodeSet& nodes_, uint inde
     return nullptr;
 }
 
-//é‡Šæ”¾æ ˆå†…æ‰€æœ‰ç©ºé—´
+//ÊÍ·ÅÕ»ÄÚËùÓĞ¿Õ¼ä
 void  ASplanner::Generator::releaseNodes(NodeSet& nodes_)
 {
     for (auto it = nodes_.begin(); it != nodes_.end();) {
@@ -354,7 +355,7 @@ ASplanner::uint  ASplanner::Heuristic::octagonal(Vec2i source_, Vec2i target_)
     auto delta = std::move(getDelta(source_, target_));
     return 10 * (delta.x + delta.y) + (-6) * std::min(delta.x, delta.y);
 }
-//ç›¸å‘å†²çª
+//ÏàÏò³åÍ»
 ASplanner::pathList ASplanner::Generator::opposing_conflict(car_path* path, uint k, car_path* pro_path, uint n, vector<G_Node>* GNs)
 {
     pathList new_way = {};
@@ -372,17 +373,18 @@ ASplanner::pathList ASplanner::Generator::opposing_conflict(car_path* path, uint
             || (path->second[k].start_time < point_pro->start_time && path->second[k].end_time > point_pro->end_time)
             || (path->second[k].start_time > point_pro->start_time && path->second[k].end_time < point_pro->end_time)) {
             if (k > 0 && pro_size > 2 && point_pro->index < (pro_size - 2)
-                && path->second[k - 1].GN.index != pro_path->second[n + 1].path.target_index) { //å¾€åé€€ä¸€æ®µè¯•æ¢å¯å¦èº²é¿
+                && path->second[k - 1].GN.index != pro_path->second[n + 1].path.target_index) { //ÍùºóÍËÒ»¶ÎÊÔÌ½¿É·ñ¶ã±Ü
                 double wait_time = pro_path->second[n + 1].end_time + (*pro_length / pro_path->first.car_v) - (path->second[k - 1].start_time);
                 for (uint m = k - 1; m < size; m++) {
                     (*path).second[m].start_time += wait_time;
                     (*path).second[m].end_time += wait_time;
                 }
-                //å‘ç›¸å†²çªï¼Œåé€€ä¸€èŠ‚ç­‰å¾…
+                //ÏòÏà³åÍ»£¬ºóÍËÒ»½ÚµÈ´ı
                 new_way = (*path).second;
             }
-            else if (k > 1 && pro_size > 3 && point_pro->index < (pro_size - 3)
-                && path->second[k - 2].GN.index != pro_path->second[n + 2].path.target_index) {//å›é€€ä¸¤æ®µè·¯è¯•è¯•èƒ½ä¸èƒ½é€šè¿‡ç­‰å¾…èº²è¿‡
+       else if (k > 1 && pro_size > 3 && point_pro->index < (pro_size - 3)
+                && path->second[k - 2].GN.index != pro_path->second[n + 2].path.target_index) {//»ØÍËÁ½¶ÎÂ·ÊÔÊÔÄÜ²»ÄÜÍ¨¹ıµÈ´ı¶ã¹ı
+                
                 double wait_time = pro_path->second[n + 2].end_time + (*pro_length / pro_path->first.car_v) - (path->second[k - 2].start_time);
                 for (uint m = k - 2; m < size; m++) {
                     (*path).second[m].start_time += wait_time;
@@ -390,8 +392,9 @@ ASplanner::pathList ASplanner::Generator::opposing_conflict(car_path* path, uint
                 }
                 new_way = (*path).second;
             }
-            else if (k > 2 && pro_size > 4 && point_pro->index < (pro_size - 4)
+       else if (k > 2 && pro_size > 4 && point_pro->index < (pro_size - 4)
                 && path->second[k - 3].GN.index != pro_path->second[n + 3].path.target_index) {
+                
                 double wait_time = pro_path->second[n + 3].end_time + (*pro_length / pro_path->first.car_v) - (path->second[k - 3].start_time);
                 for (uint m = k - 3; m < size; m++) {
                     (*path).second[m].start_time += wait_time;
@@ -399,27 +402,26 @@ ASplanner::pathList ASplanner::Generator::opposing_conflict(car_path* path, uint
                 }
                 new_way = (*path).second;
             }
-            else {      //éœ€è¦é‡æ–°è§„åˆ’ç»•è·¯äº†
-                if ((path->first.car_v > pro_path->first.car_v || path->first.car_v == pro_path->first.car_v) && k > 0)
-                {
+            else {      //ĞèÒªÖØĞÂ¹æ»®ÈÆÂ·ÁË
+                if ((path->first.car_v > pro_path->first.car_v || path->first.car_v == pro_path->first.car_v) && k > 0){
+                    
                     auto GN_pointg = &(*path).second[k - 1];
-                    uint end_index = ((*path).second[size - 1].GN.index);  //æœ€åä¸€ä¸ªå…ƒç´ ç´¢å¼•å·åœ°å€
+                    uint end_index = ((*path).second[size - 1].GN.index);  //×îºóÒ»¸öÔªËØË÷ÒıºÅµØÖ·
                     uint start_index = ((*path).second[0].GN.index);
-                    for (auto it = (*GNs).begin(); it != (*GNs).end(); it++)//åˆ é™¤ç¢°æ’è·¯æ®µçš„ç›®æ ‡ç‚¹
+                    for (auto it = (*GNs).begin(); it != (*GNs).end(); it++)//É¾³ıÅö×²Â·¶ÎµÄÄ¿±êµã
                     {
                         if (it->index == GN_pointg->GN.index)
                         {
-                            for (int tt = 0; tt < it->link_edges.size(); tt++)
-                            {
-                                if (it->link_edges[tt].target_index == GN_pointg->path.target_index)//å¦‚æœä¸Šä¸ªç‚¹ç›®æ ‡ç‚¹ä¸ºè¯¥ç‚¹ï¼Œåˆ é™¤è¯¥æ¡è·¯å¾„
-                                {
+                            for (int tt = 0; tt < it->link_edges.size(); tt++){
+                                if (it->link_edges[tt].target_index == GN_pointg->path.target_index){//Èç¹ûÉÏ¸öµãÄ¿±êµãÎª¸Ãµã£¬É¾³ı¸ÃÌõÂ·¾¶
+                                
                                     it->link_edges[tt].state = false;
                                 }
                             }
                         }
                     }
                     (*path).second = findPath((*GNs)[start_index], (*GNs)[end_index], GNs);
-                    std::cout << "ç›¸å‘å†²çªè§„åˆ’å®Œæˆ" << endl;
+                    std::cout << "ÏàÏò³åÍ»¹æ»®Íê³É" << endl;
                     (*path).second = init_time_windows(&(*path), GNs);
                     new_way = (*path).second;
                 }
@@ -428,7 +430,7 @@ ASplanner::pathList ASplanner::Generator::opposing_conflict(car_path* path, uint
     }
     return new_way;
 }
-//å†²çªé›†
+//³åÍ»¼¯
 ASplanner::pathList ASplanner::Generator::collsion_collection(car_path* path, uint k, car_path* pro_path, uint n, vector<G_Node>* GNs)
 {
      pathList new_way = {};
@@ -437,13 +439,13 @@ ASplanner::pathList ASplanner::Generator::collsion_collection(car_path* path, ui
      uint pro_size = pro_path->second.size();
      uint size = path->second.size();
      const double* pro_length;
-     if (path->first.type == 0) { pro_length = &agv_length; }//AGVè½¦é•¿
-     else { pro_length= &fork_length ; }//å‰è½¦è½¦é•¿
+     if (path->first.type == 0) { pro_length = &agv_length; }//AGV³µ³¤
+     else { pro_length= &fork_length ; }//²æ³µ³µ³¤
 
-    if (GN_point->path.collsion_id == point_pro->path.collsion_id &&GN_point->path.collsion_id != 0    //å†²çªé›†å·ç›¸åŒ
+    if (GN_point->path.collsion_id == point_pro->path.collsion_id &&GN_point->path.collsion_id != 0    //³åÍ»¼¯ºÅÏàÍ¬
         && !((GN_point->GN.index == point_pro->GN.index && GN_point->path.target_index == point_pro->path.target_index)
-        || (GN_point->GN.index == point_pro->path.target_index && GN_point->path.target_index == point_pro->GN.index)))//ä¸èƒ½æ˜¯åŒä¸€è·¯æ®µ
-    {
+        || (GN_point->GN.index == point_pro->path.target_index && GN_point->path.target_index == point_pro->GN.index))){//²»ÄÜÊÇÍ¬Ò»Â·¶Î
+    
         if ((GN_point->start_time < ((point_pro->end_time)/*+ length_time*/)
             && GN_point->start_time > point_pro->start_time)
             || (GN_point->end_time < ((point_pro->end_time) /*+ length_time*/)
@@ -451,38 +453,41 @@ ASplanner::pathList ASplanner::Generator::collsion_collection(car_path* path, ui
             ||((GN_point->start_time < ((point_pro->start_time)/*+ length_time*/)
                 && GN_point->end_time > point_pro->end_time)
             ||((GN_point->start_time > ((point_pro->start_time)/*+ length_time*/)
-                && GN_point->end_time <  point_pro->end_time)) )){ //å­˜åœ¨æ—¶é—´äº¤å‰é‡å  
-            if (GN_point->path.target_index == point_pro->GN.index) {                 //æƒ…å†µ0ã€åè½¦ç»ˆç‚¹ä¸ºå‰è½¦èµ·ç‚¹
+                && GN_point->end_time <  point_pro->end_time)) )){ //´æÔÚÊ±¼ä½»²æÖØµş 
+            
+            if (GN_point->path.target_index == point_pro->GN.index) {                 //Çé¿ö0¡¢ºó³µÖÕµãÎªÇ°³µÆğµã
                 double wait_time = point_pro->end_time + (*pro_length / pro_path->first.car_v) - GN_point->start_time;
                 for (uint m = k; m < size; m++) {
-                    //åç»­æ—¶é—´çª—å»¶å
+                    //ºóĞøÊ±¼ä´°ÑÓºó
                    (*path).second[m].start_time += wait_time;
                     (*path).second[m].end_time += wait_time;
                 }
-                cout << "åè½¦ç»ˆç‚¹ä¸ºå‰è½¦èµ·ç‚¹ï¼Œæ—¶é—´çª—åå»¶" << endl;
+                cout << "ºó³µÖÕµãÎªÇ°³µÆğµã£¬Ê±¼ä´°ºóÑÓ" << endl;
                 new_way = (*path).second;
             }
-           else if (GN_point->GN.index == point_pro->path.target_index) {          //æƒ…å†µ1ã€å‰è½¦ç›®æ ‡ç‚¹æ˜¯åè½¦èµ·ç‚¹
-                if (k > 0 && pro_size > 2 && point_pro->index < (pro_size - 2)//é•¿åº¦è¶³å¤Ÿ
-                    && path->second[k - 1].GN.index != pro_path->second[n + 1].path.target_index) {//å›é€€ä¸€æ­¥ï¼Œè¯•æ¢ã€‚
+            else if (GN_point->GN.index == point_pro->path.target_index) {          //Çé¿ö1¡¢Ç°³µÄ¿±êµãÊÇºó³µÆğµã
+                if (k > 0 && pro_size > 2 && point_pro->index < (pro_size - 2)//³¤¶È×ã¹»
+                    && path->second[k - 1].GN.index != pro_path->second[n + 1].path.target_index) {//»ØÍËÒ»²½£¬ÊÔÌ½¡£
                     double wait_time=pro_path->second[n + 1].end_time + (*pro_length / pro_path->first.car_v) - path->second[k - 1].start_time;
-                    for (uint m = k - 1; m < size; m++) {                 //åç»­æ—¶é—´çª—å»¶å
+                    for (uint m = k - 1; m < size; m++) {                 //ºóĞøÊ±¼ä´°ÑÓºó
                         (*path).second[m].start_time += wait_time;
                         (*path).second[m].end_time += wait_time;
                         }
                     new_way = path->second;
-                }//è¯•æ¢ç»“æŸ
+                }//ÊÔÌ½½áÊø
+
             else if (k > 1 && pro_size > 3 && point_pro->index < (pro_size - 3)
-                    && path->second[k - 2].GN.index != pro_path->second[n + 2].path.target_index ) {//å›é€€ä¸¤æ­¥ï¼Œè¯•æ¢
+                    && path->second[k - 2].GN.index != pro_path->second[n + 2].path.target_index ) {//»ØÍËÁ½²½£¬ÊÔÌ½
                     double wait_time = pro_path->second[n + 2].end_time + *pro_length / pro_path->first.car_v - path->second[k - 2].start_time;
                         for (uint m = k - 2; m < size; m++) {
                             (*path).second[m].start_time += wait_time;
                             (*path).second[m].end_time += wait_time;
                         }
                         new_way = (*path).second;
-                 }//è¯•æ¢ç»“æŸ
-                else {   //è¯•æ¢å®Œäº†ï¼Œæ²¡åŠæ³•äº†ã€‚é‡æ–°è§„åˆ’
-                    for (auto it = (*GNs).begin(); it != (*GNs).end(); it++)//åˆ é™¤ç¢°æ’è·¯æ®µçš„ç›®æ ‡ç‚¹
+                 }//ÊÔÌ½½áÊø
+
+                else {   //ÊÔÌ½ÍêÁË£¬Ã»°ì·¨ÁË¡£ÖØĞÂ¹æ»®
+                    for (auto it = (*GNs).begin(); it != (*GNs).end(); it++)//É¾³ıÅö×²Â·¶ÎµÄÄ¿±êµã
                     {
                         auto GN_pointg = &(path->second[0]);
                             if (k != 0) { GN_pointg = &(path->second[k-1]); }
@@ -490,9 +495,7 @@ ASplanner::pathList ASplanner::Generator::collsion_collection(car_path* path, ui
                         {
                             for (uint tt = 0; tt < it->link_edges.size(); tt++)
                             {
-                                if (it->link_edges[tt].target_index == point_pro->path.target_index
-                                    )
-                                {
+                                if (it->link_edges[tt].target_index == point_pro->path.target_index){
                                     it->link_edges[tt].state = false;
                                 }
                             }
@@ -506,20 +509,20 @@ ASplanner::pathList ASplanner::Generator::collsion_collection(car_path* path, ui
                 }
             }
 
-            else if(GN_point->GN.index == point_pro->GN.index)    //æƒ…å†µ2ã€èµ·ç‚¹ç›¸åŒï¼Œç»ˆç‚¹ä¸åŒã€‚åˆ†ä¸ºä¸¤ç§æƒ…å†µ
-            {
-                if (GN_point->start_time < point_pro->start_time) {//ä¼˜å…ˆçº§ä½çš„è½¦å…ˆåˆ°
-                    for (uint ii = 0; ii < k && ii < n; ii++)//å–æœ€å°å€¼
+            else if(GN_point->GN.index == point_pro->GN.index){    //Çé¿ö2¡¢ÆğµãÏàÍ¬£¬ÖÕµã²»Í¬¡£·ÖÎªÁ½ÖÖÇé¿ö
+            
+                if (GN_point->start_time < point_pro->start_time) {//ÓÅÏÈ¼¶µÍµÄ³µÏÈµ½
+                    for (uint ii = 0; ii < k && ii < n; ii++)//È¡×îĞ¡Öµ
                     {
                         if ((*path).second[k - ii - 1].GN.index != (*pro_path).second[n - ii - 1].GN.index
-                            && (*path).second[k - ii - 1].path.target_index == (*pro_path).second[n - ii - 1].path.target_index)//æ‰¾ä»½å²”è·¯å£
+                            && (*path).second[k - ii - 1].path.target_index == (*pro_path).second[n - ii - 1].path.target_index)//ÕÒ·İ²íÂ·¿Ú
                         {
                             double length_time = 0.0;
                             if (pro_path->first.type == 0) { length_time = agv_length / pro_path->first.car_v; }
                             else { length_time = fork_length / pro_path->first.car_v; }
 
                             double wait_time = fabs(((*path).second[k - ii].start_time) - ((*pro_path).second[n - ii].end_time)) + length_time;
-                            for (uint u = (k - ii - 1); u < ((*path).second.size()); u++)//åç§»æ—¶é—´çª—
+                            for (uint u = (k - ii - 1); u < ((*path).second.size()); u++)//ºóÒÆÊ±¼ä´°
                             {
                                 (*path).second[u].start_time += wait_time;
                                 (*path).second[u].end_time += wait_time;
@@ -528,10 +531,10 @@ ASplanner::pathList ASplanner::Generator::collsion_collection(car_path* path, ui
                             break;
                         }
                     }
-                //  å¦‚æœæ²¡æœ‰æ‰¾åˆ°åˆ†å²”è·¯å£:è§£å†³æ–¹æ¡ˆï¼š.....
+                //  Èç¹ûÃ»ÓĞÕÒµ½·Ö²íÂ·¿Ú:½â¾ö·½°¸£º.....
 
                 }
-                else {//ä¼˜å…ˆçº§é«˜çš„è½¦å…ˆåˆ°
+                else {//ÓÅÏÈ¼¶¸ßµÄ³µÏÈµ½
                     if (GN_point->end_time < (mini_distance + *pro_length / pro_path->first.car_v) + GN_point->end_time && k>0) {
                         double wait_time = (mini_distance + *pro_length / pro_path->first.car_v) + GN_point->end_time - GN_point->end_time;
                         for (uint m = k-1; m < size; m++) {
@@ -542,13 +545,14 @@ ASplanner::pathList ASplanner::Generator::collsion_collection(car_path* path, ui
                     }
                 }
             }
-            else if(GN_point->GN.index != point_pro->GN.index                
-                &&GN_point->path.target_index==point_pro->path.target_index){//æƒ…å†µ3ã€èµ·ç‚¹ä¸åŒã€ç»ˆç‚¹ç›¸åŒã€‚æ‰§è¡Œç­‰å¾…
-                
-                double set_time = point_pro->end_time - (GN_point->start_time + (*pro_length + mini_distance) / pro_path->first.car_v);//è®¡ç®—åç§»æ—¶é—´
 
-                cout<< "å†²çªé›†æ‰§è¡Œç­‰å¾…" << endl;
-                for (uint m = k; m < size; m++)//åç»­çš„ç‚¹å…¨éƒ¨å‘å
+       else if(GN_point->GN.index != point_pro->GN.index                
+                &&GN_point->path.target_index==point_pro->path.target_index){//Çé¿ö3¡¢Æğµã²»Í¬¡¢ÖÕµãÏàÍ¬¡£Ö´ĞĞµÈ´ı
+                
+                double set_time = point_pro->end_time - (GN_point->start_time + (*pro_length + mini_distance) / pro_path->first.car_v);//¼ÆËãºóÒÆÊ±¼ä
+
+                cout<< "³åÍ»¼¯Ö´ĞĞµÈ´ı" << endl;
+                for (uint m = k; m < size; m++)//ºóĞøµÄµãÈ«²¿Ïòºó
                 {
                     if (m == k) {
                         if ((*path).first.type == 0) {
@@ -569,21 +573,22 @@ ASplanner::pathList ASplanner::Generator::collsion_collection(car_path* path, ui
                         }
                     }
                     else {
-                        (*path).second[m].start_time += set_time; //åç§»æ—¶é—´çª— 
+                        (*path).second[m].start_time += set_time; //ºóÒÆÊ±¼ä´° 
                         (*path).second[m].end_time += set_time;
                     }
                 }
                 new_way =(*path).second;
             }
-            //å†²çªé›†åˆ¤æ–­
+            //³åÍ»¼¯ÅĞ¶Ï
         }
     }
     return new_way;
 }
+//Ê±¼ä´°³õÊ¼»¯
 ASplanner::pathList ASplanner::Generator::init_time_windows(pair<Car_config,pathList> *path,vector<G_Node>* GNs)
 {
     double time_cnt = 0;
-    path_point previous;//ä¸Šä¸€ä¸ªç‚¹
+    path_point previous;//ÉÏÒ»¸öµã
     for (auto& GN_point : (*path).second)
     {
         double cos = 1;
@@ -599,38 +604,39 @@ ASplanner::pathList ASplanner::Generator::init_time_windows(pair<Car_config,path
             
         }
 
-        if (GN_point.index == 0) {      //0çš„è¯ï¼Œæ˜¯ç¬¬ä¸€ä¸ªèŠ‚ç‚¹ï¼Œè®¡ç®—å¯åŠ¨æ—¶é—´
+        if (GN_point.index == 0) {      //0µÄ»°£¬ÊÇµÚÒ»¸ö½Úµã£¬¼ÆËãÆô¶¯Ê±¼ä
             
-            if ((*path).first.type==0) 
-            {
+            if ((*path).first.type==0){
                 double acc_leng =( agv_acc * pow(((*path).first.car_v / agv_acc), 2))/2;
                 
-                    //åŠ é€Ÿåº¦æ—¶é—´  +  åŒ€é€Ÿæ—¶é—´
+                    //¼ÓËÙ¶ÈÊ±¼ä  +  ÔÈËÙÊ±¼ä
                 GN_point.spend_time = (*path).first.car_v / agv_acc + (GN_point.path.leng - acc_leng) / (*path).first.car_v;
                 
             }
+
             else {
-                double acc_leng = (fork_acc * pow(((*path).first.car_v / fork_acc), 2)) / 2;// åŠ æ»¡é€Ÿåº¦é•¿åº¦
-                 //åŠ é€Ÿåº¦æ—¶é—´ +  åŒ€é€Ÿæ—¶é—´
+                double acc_leng = (fork_acc * pow(((*path).first.car_v / fork_acc), 2)) / 2;// ¼ÓÂúËÙ¶È³¤¶È
+                 //¼ÓËÙ¶ÈÊ±¼ä +  ÔÈËÙÊ±¼ä
                 GN_point.spend_time = (*path).first.car_v / fork_acc + (GN_point.path.leng - acc_leng) / (*path).first.car_v;
-             }
+            }
         }
-        else if (GN_point.index == -1) {    //-1çš„è¯ï¼Œä»£è¡¨æ²¡æœ‰èŠ‚ç‚¹
+
+        else if (GN_point.index == -1) {    //-1µÄ»°£¬´ú±íÃ»ÓĞ½Úµã
             GN_point.spend_time = 0;
         }
         
-        else {                  //å…¶ä»–çš„è¯ï¼Œä»£è¡¨æ­£å¸¸è·¯æ®µçš„æ—¶é—´
+        else {                  //ÆäËûµÄ»°£¬´ú±íÕı³£Â·¶ÎµÄÊ±¼ä
 
-            GN_point.spend_time = GN_point.path.leng / (*path).first.car_v+ (1 - cos) * wheel_time;//è€ƒè™‘è½¬å¼¯ 
+            GN_point.spend_time = GN_point.path.leng / (*path).first.car_v+ (1 - cos) * wheel_time;//¿¼ÂÇ×ªÍä 
         }
-        GN_point.start_time = time_cnt ;//èµ·å§‹æ—¶é—´
+        GN_point.start_time = time_cnt ;//ÆğÊ¼Ê±¼ä
         time_cnt += GN_point.spend_time ;
         GN_point.end_time = time_cnt;
         previous = GN_point;
     }
     return (*path).second;
 }
-//åŒå‘å†²çª
+//Í¬Ïò³åÍ»
 ASplanner:: car_path ASplanner::Generator::colliding_conflict(car_path* path, uint k, car_path* pro_path, uint n, vector<G_Node>* GNs)
 {
     car_path new_path = {};
@@ -639,12 +645,12 @@ ASplanner:: car_path ASplanner::Generator::colliding_conflict(car_path* path, ui
     size_t pro_size = pro_path->second.size();
     size_t size = path->second.size();
     if(GN_point->GN.index == point_pro->GN.index 
-        &&GN_point->path.target_index == point_pro->path.target_index){     //åŒä¸€æ®µè·¯å¾„
-        if (k < (size - 2) && n < (pro_size - 2)//ä¿è¯æ­¤æ®µè·¯ä¸ä¸ºæœ€åä¸€æ®µè·¯
-            && GN_point->end_time <point_pro->end_time   //æ­¤èŠ‚ç‚¹å…ˆåˆ°
-            && (*path).second[k + 1].end_time >(*pro_path).second[n + 1].end_time) {//ä½†æ˜¯ä¸‹ä¸€ä¸ªèŠ‚ç‚¹è¢«è¶…äº†
-            bool is_Bifurcation = false;     //æ˜¯å¦æœ‰åˆ†å‰è·¯
-            for (uint ii = 0; ii < k && ii < n; ii++)//å–æœ€å°å€¼
+        &&GN_point->path.target_index == point_pro->path.target_index){     //Í¬Ò»¶ÎÂ·¾¶
+        if (k < (size - 2) && n < (pro_size - 2)//±£Ö¤´Ë¶ÎÂ·²»Îª×îºóÒ»¶ÎÂ·
+            && GN_point->end_time <point_pro->end_time   //´Ë½ÚµãÏÈµ½
+            && (*path).second[k + 1].end_time >(*pro_path).second[n + 1].end_time) {//µ«ÊÇÏÂÒ»¸ö½Úµã±»³¬ÁË
+            bool is_Bifurcation = false;     //ÊÇ·ñÓĞ·Ö²æÂ·
+            for (uint ii = 0; ii < k && ii < n; ii++)//È¡×îĞ¡Öµ
             {
                 if ((*path).second[k - ii].GN.index != (*pro_path).second[n - ii].GN.index
                     && (*path).second[k - ii].path.target_index == (*pro_path).second[n - ii].path.target_index) {
@@ -653,7 +659,7 @@ ASplanner:: car_path ASplanner::Generator::colliding_conflict(car_path* path, ui
                     if (pro_path->first.type == 0) { length_time = agv_length / pro_path->first.car_v; }
                     else { length_time = fork_length / pro_path->first.car_v; }
                     double wait_time = ((*pro_path).second[n - ii].end_time) - ((*path).second[k - ii].start_time) + length_time;
-                    for (uint u = (k - ii); u < ((*path).second.size()); u++)//åç§»æ—¶é—´çª—
+                    for (uint u = (k - ii); u < ((*path).second.size()); u++)//ºóÒÆÊ±¼ä´°
                     {
                         (*path).second[u].start_time += wait_time;
                         (*path).second[u].end_time += wait_time;
@@ -664,7 +670,7 @@ ASplanner:: car_path ASplanner::Generator::colliding_conflict(car_path* path, ui
                 }
             }
 
-            if (!is_Bifurcation) {//æ²¡æ‰¾åˆ°å²”è·¯
+            if (!is_Bifurcation) {//Ã»ÕÒµ½²íÂ·
                 for (auto& gdge : GN_point->GN.link_edges) {
                     gdge.target_index;
                 }
@@ -676,8 +682,8 @@ ASplanner:: car_path ASplanner::Generator::colliding_conflict(car_path* path, ui
             && GN_point->start_time > point_pro->start_time
             && GN_point->end_time < point_pro->end_time
             && GN_point->end_time > point_pro->start_time) {
-            //é‡‡å–åè½¦å‡é€Ÿ
-            cout << "å‡é€Ÿæ‰§è¡Œç­‰å¾…ã€‚" << (*path).first.car_v << "m/så‡é€Ÿä¸º" << pro_path->first.car_v << "m/s" << endl;
+            //²ÉÈ¡ºó³µ¼õËÙ
+            cout << "¼õËÙÖ´ĞĞµÈ´ı¡£" << (*path).first.car_v << "m/s¼õËÙÎª" << pro_path->first.car_v << "m/s" << endl;
             (*path).first.car_v = pro_path->first.car_v;
             double moderate_time = (*path).second[k].start_time;
             for (uint m = k; m < (*path).second.size(); m++) {
@@ -693,259 +699,256 @@ ASplanner:: car_path ASplanner::Generator::colliding_conflict(car_path* path, ui
     return new_path;
 }
 
-//èŠ‚ç‚¹å†²çª
-ASplanner::pathList ASplanner::Generator::node_conflict(car_path* path,uint k ,car_path* pro_path,uint n ,vector<G_Node>* GNs)
-{   
+//½Úµã³åÍ»
+void ASplanner::Generator::node_conflict(car_path* path,uint k ,car_path* pro_path,uint n ,vector<G_Node>* GNs)
+{
     auto GN_point = &(*path).second[k];
     auto point_pro = &(*pro_path).second[n];
     const double* pro_length;
-    if (pro_path->first.type == 0) { pro_length = &agv_length; }//AGVè½¦é•¿/é€Ÿåº¦
-    else { pro_length = &fork_length; }//å‰è½¦è½¦é•¿/é€Ÿåº¦
+    if (pro_path->first.type == 0) { pro_length = &agv_length; }//AGV³µ³¤/ËÙ¶È
+    else { pro_length = &fork_length; }//²æ³µ³µ³¤/ËÙ¶È
 
-    if (GN_point->path.target_index == point_pro->path.target_index     //ä¸¤è½¦ç›®æ ‡ç‚¹ç›¸åŒ
-        && GN_point->GN.index != point_pro->GN.index                              //èµ·ç‚¹ä¸åŒ
-        &&GN_point->path.collsion_id !=point_pro->path.collsion_id){              //ä¸åœ¨ä¸€ä¸ªå†²çªé›†
-        if ((GN_point->start_time < point_pro->end_time + (*pro_length/pro_path->first.car_v) && GN_point->start_time >point_pro->start_time)
-            || (GN_point->end_time < point_pro->end_time +(*pro_length / pro_path->first.car_v) && GN_point->end_time >point_pro->start_time))
-        {
-            auto pro_next = &(*pro_path).second[(*pro_path).second[n].index+1];
-            auto GN_pointg = &(*path).second[k - 1];
-            if (GN_pointg->GN.index != pro_next->path.target_index
-                &&GN_pointg->path.target_index == pro_next->GN.index) {//ç¢°æ’è·¯æ®µåä¸¤è½¦èµ°ä¸åŒè·¯
-                double t = point_pro->end_time - (((GN_point->path.leng / (*pro_path).first.car_v) + fabs(GN_point->start_time + point_pro->start_time)) / 2);
+    if (GN_point->GN.index != point_pro->path.source_index // Á½ÌõÂ·Æğµã²»Ò»Ñù
+        && (*path).second[k].path.target_index == point_pro->path.target_index
+        && GN_point->path.collsion_id != point_pro->path.collsion_id
+        ) {//Ä¿±êµãÏàÍ¬
+        double delt_time = fabs(GN_point->end_time - point_pro->end_time);
+        if (delt_time < ((mini_distance + *pro_length) / pro_path->first.car_v)) {   //Ê±¼ä²î²»¹»´ó
+            double wait_time = point_pro->end_time + (mini_distance + *pro_length) / pro_path->first.car_v - GN_point->spend_time - GN_point->start_time;
+            for (uint m = k; k < path->second.size(); m++) {
                 
-                double set_time = fabs(pro_next->end_time - GN_point->start_time) + t;//è®¡ç®—åç§»æ—¶é—´
-                cout <<"èŠ‚ç‚¹å†²çªæ‰§è¡Œç­‰å¾…" << endl;
-                for (uint m = k-1; m < (*path).second.size(); m++)//åç»­çš„ç‚¹å…¨éƒ¨å‘å
-                {
-                    if (m == k-1) {
-                        if ((*path).first.type == 0) {
-                            double push_time = std::pow(((*path).first.car_v / agv_acc), 0.5) / (*path).second[m].path.leng;
-                             (*path).second[m].start_time += set_time;
-                            set_time += push_time;
-                            (*path).second[m].spend_time += push_time;
-                            (*path).second[m].end_time += set_time;
-                        }
-                        else {
-                            double push_time = std::pow(((*path).first.car_v / fork_acc), 0.5) / (*path).second[m].path.leng;
-
-                            (*path).second[m].start_time += set_time;
-                            set_time += push_time;
-                            (*path).second[m].spend_time += push_time;
-                            (*path).second[m].end_time += set_time;
-                        }
-                    }
-                    else {
-                        (*path).second[m].start_time += set_time; //åç§»æ—¶é—´çª— 
-                        (*path).second[m].end_time += set_time;
-                    }
-                }
+                (*path).second[m].start_time += wait_time;
+                (*path).second[m].end_time += wait_time;
             }
         }
     }
-    //if (GN_point->GN.index != point_pro->path.source_index // ä¸¤æ¡è·¯èµ·ç‚¹ä¸ä¸€æ ·
-    //    && (*path).second[k].path.target_index == point_pro->path.target_index)//ç›®æ ‡ç‚¹ç›¸åŒ
-    //{
-    //    const double* car_length = NULL;
-    //    const double* pro_car_length = NULL;
-    //    if (path->first.type == 0) { car_length = &agv_length; }
-    //    else{car_length = &fork_length;}
-    //    if (pro_path->first.type == 0) { pro_car_length = &agv_length; }
-    //    else { pro_car_length = &fork_length; }
-    //    double del_time = GN_point->end_time - point_pro->end_time;//è®¡ç®—åˆ°è¾¾åŒä¸€èŠ‚ç‚¹çš„æ—¶é—´å·®
-
-    //    if (del_time < 0)//ä¼˜å…ˆçº§ä½çš„è½¦å…ˆåˆ°è¾¾ç›®æ ‡èŠ‚ç‚¹
-    //    {
-    //        if ((*car_length) / path->first.car_v > (-del_time))
-    //        {
-    //            //åè½¦æ‰§è¡Œç­‰å¾…
-    //        }
-    //    }
-    //    else {   //ä¼˜å…ˆçº§é«˜çš„è½¦å…ˆåˆ°è¾¾
-    //        if ((*pro_car_length / pro_path->first.car_v) > del_time) { //æ—¶é—´æ²¡é”™å¼€
-    //        
-    //        }
-    //        else {//æ—¶é—´é”™å¼€äº†
-    //        
-    //        }
-    //    
-    //    }
-
-    //    const double* length = new const double;
-    //    length = NULL;
-    //    if (pro_path->first.type == 0) { length = &agv_length; }
-    //    else { length = &fork_length; }
-    //    if (del_time <(*length) / pro_path->first.car_v) {
-    //        for (uint m = k; k < (*path).second.size(); k++)
-    //        {
-    //            if (m == k) {
-    //                (*path).second[k].end_time += (*length) / pro_path->first.car_v;
-    //                (*path).second[k].spend_time += (*length) / pro_path->first.car_v;
-    //            }
-    //            else {
-    //                (*path).second[m].end_time += (*length) / pro_path->first.car_v;
-    //                (*path).second[m].start_time += (*length) / pro_path->first.car_v;
-    //            }
-    //        }
-    //    }
-    //}
-    return (*path).second;
 }
-
-ASplanner::pathList ASplanner::Generator::mini_distance_between_vechels(car_path* path, uint k, car_path* pro_path, uint n, vector<G_Node>* GNs)
+//×îĞ¡³µ¾à
+bool ASplanner::Generator::mini_distance_between_vechels(car_path* path, uint k, car_path* pro_path, uint n, vector<G_Node>* GNs)
 {
+    bool is_Bifurcation = false;
     pathList new_path = {};
     auto GN_point = &(*path).second[k];
     auto point_pro = &(*pro_path).second[n];
-    if (GN_point->GN.index==point_pro->GN.index
-        &&GN_point->path.target_index==point_pro->path.target_index)//åŒä¸€æ®µè·¯
-    {
-        double length_pro;//é«˜ä¼˜å…ˆçº§è½¦é•¿åº¦
-        if (pro_path->first.type == 0) { length_pro = agv_length; }
-        else { length_pro = fork_length; }
-        double length;//ä½ä¼˜å…ˆçº§è½¦é•¿åº¦
-        if (path->first.type == 0) { length = agv_length; }
-        else { length = fork_length; }
+    size_t size = path->second.size();
+    size_t pro_size = pro_path->second.size();
+    const double* pro_length;
+    const double* length;
+    if (pro_path->first.type == 0) { pro_length = &agv_length; }
+    else { pro_length = &fork_length; }
+    if (path->first.type == 0) { length = &agv_length; }
+    else { length = &fork_length; }
+    const double mini_time = (mini_distance + (*pro_length)) / pro_path->first.car_v;
 
-        if (point_pro->end_time - GN_point->end_time > 0 //é«˜ä¼˜å…ˆçº§è½¦åœ¨å‰
-            && (point_pro->end_time - GN_point->end_time) < ((length_pro+mini_distance) / path->first.car_v)
-            && (point_pro->start_time - GN_point->end_time < 0))//å‰è½¦åœ¨å‰ï¼Œä½†æ˜¯é å‰çš„ä¸å¤š
-        {    //å¦‚ä½•è®¾ç½®åç§»æ—¶é—´
-            double wait_time = (length_pro/path->first.car_v) +
-                (mini_distance/path->first.car_v) +
-                (point_pro->end_time - GN_point->end_time);
-            for (uint m = k; m < path->second.size(); m++) 
-            {
-                if (m == k) 
-                {
-                    (*path).second[m].spend_time += wait_time;
-                    (*path).second[m].end_time += wait_time;
-                }
-                else 
-                {
-                    (*path).second[m].end_time += wait_time;
-                    (*path).second[m].start_time += wait_time;
-                }
-            }
-            new_path = (*path).second;
-        }
-        else if((point_pro->end_time - GN_point->end_time) < 0    //ä¼˜å…ˆçº§é«˜çš„è½¦åœ¨å 
-            && (GN_point->end_time - point_pro->end_time) < ((length+mini_distance) / pro_path->first.car_v) //ä¸¤è½¦é—´è·è¿‡è¿‘
-            && (point_pro->end_time - GN_point->start_time > 0))
-        {
-            double length_time = 0.0;
-            if (pro_path->first.type == 0) { length_time = agv_length / pro_path->first.car_v; }
-            else { length_time = fork_length / pro_path->first.car_v; }
+    if ((path->first.car_v > pro_path->first.car_v) || (path->first.car_v == pro_path->first.car_v)   //³µËÙ´óÓÚ»òµÈÓÚÓÅÏÈ¼¶¸ßµÄ³µ
+        &&GN_point->GN.index==point_pro->GN.index && GN_point->path.target_index== point_pro->path.target_index//Í¬Ò»¶ÎÂ·
+        &&GN_point->index <(size-2) && point_pro->index<(pro_size-2)) {     //²»Îª×îºóÒ»¶ÎÂ·
+        
+        if ((GN_point->start_time - point_pro->start_time)>0         //ÓÅÏÈ¼¶¸ßµÄ³µÔÚÇ°
+            && (GN_point->start_time - point_pro->start_time) < mini_time) {  //µ«ÊÇÊ±¼ä²î²»¹»´ó
+            path->first.car_v = pro_path->first.car_v;      //¼õËÙ
+            
+            double cnt_time = (*path).second[k].start_time;
+            for (uint m = k; m < size;m++) {
+                (*path).second[m].start_time = cnt_time;
+                (*path).second[m].spend_time= (*path).second[m].path.leng / path->first.car_v;
+                cnt_time += (*path).second[m].spend_time;
+                (*path).second[m].end_time = cnt_time;
+            }    
 
-            double wait_time = ((*pro_path).second[n].end_time) - ((*path).second[k].start_time) + length_time;
-            for (uint m = k - 1; m < path->second.size(); m++)
-            {
-                if (m == k - 1)
-                {
-                    (*path).second[m].spend_time += wait_time;
-                    (*path).second[m].end_time += wait_time;
-                }
-                else
-                {
-                    (*path).second[m].end_time += wait_time;
-                    (*path).second[m].start_time += wait_time;
-                }
-                new_path = (*path).second;
-
-            }
-        }
-    }
-    return new_path;
-}
-
-ASplanner::pathList ASplanner::Generator::mini_distance_between_vechels_0(car_path* path, uint k, car_path* pro_path, uint n, vector<G_Node>* GNs)
-{
-    pathList new_path = {};
-    auto GN_point = &(*path).second[k];
-    auto point_pro = &(*pro_path).second[n];
-    if (GN_point->GN.index==point_pro->GN.index
-        &&GN_point->path.target_index==point_pro->path.target_index)//åŒä¸€æ®µè·¯
-    {
-        const double* length_pro;
-        if (pro_path->first.type == 0) { length_pro = &agv_length; }
-        else { length_pro = &fork_length; }
-
-        const double* length;
-        if (path->first.type == 0) { length = &agv_length; }
-        else { length = &fork_length; }
-
-        if (point_pro->end_time - GN_point->end_time >0
-            && point_pro->end_time - GN_point->end_time < ((*length_pro+mini_distance)/pro_path->first.car_v) )//å‰è½¦åœ¨å‰ï¼Œä½†æ˜¯é å‰çš„ä¸å¤š
-        {    //å¦‚ä½•è®¾ç½®åç§»æ—¶é—´
-            double wait_time = (((*length_pro/pro_path->first.car_v)+mini_distance)/pro_path->first.car_v)+GN_point->end_time - point_pro->end_time;
-            for (uint m = k; k < path->second.size(); k++) {
-                if (m == k) {
-                    (*path).second[m].spend_time += wait_time;
-                    (*path).second[m].end_time += wait_time;
-                }
-                else {
-                    (*path).second[m].end_time += wait_time;
-                    (*path).second[m].start_time += wait_time;
+            if ((GN_point->spend_time > mini_time)||(GN_point->spend_time == mini_time)) {        //Ò»¶ÎÂ·Ê±¼ä¹»²»¹»
+                for (uint m = k; m < size; m++) {
+                    (*path).second[m].start_time += mini_time;
+                    (*path).second[m].end_time += mini_time;
                 }
             }
-            new_path = (*path).second;
+
+       else if (point_pro->spend_time < mini_time 
+                &&((*path).second[k+1].spend_time+GN_point->spend_time)>mini_time) { //Á½¶ÎÂ·Ê±¼ä¹»Âğ£¿
+                
+                double wait_time=mini_time/*×îĞ¡Ê±¼ä*/ - GN_point->spend_time + point_pro->end_time-GN_point->start_time;
+                    
+                for (uint m = k; m < size; m++) {
+                    (*path).second[m].start_time += mini_time;
+                    (*path).second[m].end_time += mini_time;     
+                }
+            }
+       else if (point_pro->spend_time < mini_time&& k<(size-3)&&n<(pro_size-3)
+           && ((*path).second[k + 1].spend_time + GN_point->spend_time)>mini_time) { //Á½¶ÎÂ·Ê±¼ä¹»Âğ£¿
+
+                double wait_time =mini_time - GN_point->spend_time - (*path).second[k+1].spend_time + point_pro->end_time - GN_point->start_time;
+
+                for (uint m = k; m < size; m++) {
+                    (*path).second[m].start_time += wait_time;
+                    (*path).second[m].end_time += wait_time;
+                }
+            }
+
+            else {
+                for (uint m = k; m < size; m++) {
+                    (*path).second[m].start_time += 3.6;
+                    (*path).second[m].end_time += 3.6;
+                }
+            }
         }
-        else if((point_pro->end_time - GN_point->end_time) < 0    //ä¼˜å…ˆçº§é«˜çš„è½¦åœ¨å 
-            && (GN_point->end_time- point_pro->end_time) < ((*length+mini_distance) /path->first.car_v)){  //åè½¦åœ¨å‰,è·ç¦»å¾ˆè¿‘
-            for (uint ii = 0; ii < k && ii < n; ii++)
+
+        else if(( point_pro->start_time- GN_point->start_time) > 0){      //ÓÅÏÈ¼¶¸ßµÄ³µÔÚºó
+            for (uint ii = 0; ii < (k+1) && ii < (n+1); ii++)//È¡×îĞ¡Öµ
             {
-                if (path->second[k - ii].GN.index != pro_path->second[n - ii].GN.index
-                    && path->second[k - ii].path.target_index != pro_path->second[n - ii].path.target_index
-                    )
-                {
-                    double length_time = 0.0;
-                    if (pro_path->first.type == 0) { length_time = agv_length / pro_path->first.car_v; }
-                    else { length_time = fork_length / pro_path->first.car_v; }
-                    double wait_time = ((*pro_path).second[n - ii].end_time) - ((*path).second[k - ii].start_time) + length_time;
-                    for (uint u = (k - ii); u < ((*path).second.size()); u++)//åç§»æ—¶é—´çª—
+                if ((*path).second[k - ii].GN.index != (*pro_path).second[n - ii].GN.index
+                    && (*path).second[k - ii].path.target_index == (*pro_path).second[n - ii].path.target_index) {
+
+                    double wait_time = (*pro_path).second[k - ii].end_time + (mini_time - (*path).second[k - ii].spend_time) - (*path).second[k - ii].start_time;
+                    for (uint u = (k - ii); u < ((*path).second.size()); u++)//ºóÒÆÊ±¼ä´°
                     {
                         (*path).second[u].start_time += wait_time;
                         (*path).second[u].end_time += wait_time;
                     }
-                    new_path = (*path).second;
                     break;
                 }
             }
-        }
-    }
-    return new_path;
-}
 
-ASplanner::pathList ASplanner::Generator::station_is_vechel(uint k,uint pro_size,path_point* point_pro, pair<Car_config,pathList>* path, vector<G_Node>* GNs)
-{
-    pathList new_way = {};
-    int size = path->second.size();
-    if ((*path).second[k].path.target_index == point_pro->path.target_index && point_pro->index == pro_size
-        &&point_pro->GN.name.last_id ==0
-        )
-    {
-        //cout <<point_pro.GN.name.main_id<<"-" << point_pro.GN.name.sec_id <<"-"<< point_pro.GN.name.last_id << endl;
-            if ((*path).second[k].end_time > point_pro->start_time)
-        {
-            for (auto it = (*GNs).begin(); it != (*GNs).end(); it++)//åˆ é™¤ç¢°æ’è·¯æ®µçš„ç›®æ ‡ç‚¹
-            {
-                for (uint tt = 0; tt < it->link_edges.size(); tt++)
+        }
+
+    }
+
+    else if ((path->first.car_v < pro_path->first.car_v)            //³µËÙĞ¡ÓÚÓÅÏÈ¼¶¸ßµÄ³µ
+        && GN_point->GN.index == point_pro->GN.index && GN_point->path.target_index == point_pro->path.target_index) {
+
+            if (GN_point->start_time - point_pro->start_time > 0//ÓÅÏÈ¼¶¸ßµÄ³µÔÚÇ°
+                && GN_point->start_time - point_pro->start_time < mini_time) {//²îµÄ²»¶à
+                double wait_time = mini_time - GN_point->start_time + point_pro->start_time;
+                for (uint m = k; m < size; m++) {
+                (*path).second[m].start_time += wait_time;
+                (*path).second[m].end_time += wait_time;
+                }
+            }
+
+            else if (GN_point->start_time - point_pro->start_time < 0){ //±ÈÓÅÏÈ¼¶¸ßµÄ³µÏÈ½øÀ´¡£Ê±¿Õ»ØËİ
+                    //Ê±¿Õ»ØËİ
+                for (uint ii = 1; ii < k && ii < n; ii++)//È¡×îĞ¡Öµ
                 {
-                    if (it->link_edges[tt].target_index == point_pro->path.target_index)
-                    {
-                        it->link_edges[tt].state = false;
+                    if ((*path).second[k - ii].GN.index != (*pro_path).second[n - ii].GN.index
+                        && (*path).second[k - ii].path.target_index == (*pro_path).second[n - ii].path.target_index) {
+
+                        double wait_time = (*pro_path).second[k - ii].end_time +(mini_time - (*path).second[k - ii].spend_time)- (*path).second[k - ii].start_time;
+                        for (uint u = (k - ii); u < ((*path).second.size()); u++)//ºóÒÆÊ±¼ä´°
+                        {
+                            (*path).second[u].start_time += wait_time;
+                            (*path).second[u].end_time += wait_time;
+                        }
+                        is_Bifurcation = true;
+                        break;
                     }
                 }
             }
-            uint start_index = (*path).second[0].GN.index;
-            uint end_index = (*path).second[size - 1].GN.index;
-            new_way = findPath((*GNs)[start_index], (*GNs)[end_index], GNs);
-            pair<Car_config, pathList> temp;
-            temp.second = new_way;
-            temp.first =(*path).first ;
-            new_way = init_time_windows(&temp, GNs);
-            std::cout << "é‡æ–°è§„åˆ’å®Œæˆ" << endl;
-        }
-    }
-    return new_way;
+            else if (is_Bifurcation) {
+            
+                cout << "ĞèÒªµ÷ÕûÓÅÏÈ¼¶" << endl;
+            }
+         }
+
+    return is_Bifurcation;
 }
+//ASplanner::pathList ASplanner::Generator::mini_distance_between_vechels(car_path* path, uint k, car_path* pro_path, uint n, vector<G_Node>* GNs)
+//{
+//    pathList new_path = {};
+//    auto GN_point = &(*path).second[k];
+//    auto point_pro = &(*pro_path).second[n];
+//    if (GN_point->GN.index == point_pro->GN.index
+//        && GN_point->path.target_index == point_pro->path.target_index)//Í¬Ò»¶ÎÂ·
+//    {
+//        double length_pro;//¸ßÓÅÏÈ¼¶³µ³¤¶È
+//        if (pro_path->first.type == 0) { length_pro = agv_length; }
+//        else { length_pro = fork_length; }
+//        double length;//µÍÓÅÏÈ¼¶³µ³¤¶È
+//        if (path->first.type == 0) { length = agv_length; }
+//        else { length = fork_length; }
+//
+//        if (point_pro->end_time - GN_point->end_time > 0 //¸ßÓÅÏÈ¼¶³µÔÚÇ°
+//            && (point_pro->end_time - GN_point->end_time) < ((length_pro + mini_distance) / path->first.car_v)
+//            && (point_pro->start_time - GN_point->end_time < 0))//Ç°³µÔÚÇ°£¬µ«ÊÇ¿¿Ç°µÄ²»¶à
+//        {    //ÈçºÎÉèÖÃºóÒÆÊ±¼ä
+//            double wait_time = (length_pro / path->first.car_v) +
+//                (mini_distance / path->first.car_v) +
+//                (point_pro->end_time - GN_point->end_time);
+//            for (uint m = k; m < path->second.size(); m++)
+//            {
+//                if (m == k)
+//                {
+//                    (*path).second[m].spend_time += wait_time;
+//                    (*path).second[m].end_time += wait_time;
+//                }
+//                else
+//                {
+//                    (*path).second[m].end_time += wait_time;
+//                    (*path).second[m].start_time += wait_time;
+//                }
+//            }
+//            new_path = (*path).second;
+//        }
+//        else if ((point_pro->end_time - GN_point->end_time) < 0    //ÓÅÏÈ¼¶¸ßµÄ³µÔÚºó 
+//            && (GN_point->end_time - point_pro->end_time) < ((length + mini_distance) / pro_path->first.car_v) //Á½³µ¼ä¾à¹ı½ü
+//            && (point_pro->end_time - GN_point->start_time > 0))
+//        {
+//            double length_time = 0.0;
+//            if (pro_path->first.type == 0) {
+//                length_time = agv_length / pro_path->first.car_v;
+//            }
+//            else { length_time = fork_length / pro_path->first.car_v; }
+//
+//            double wait_time = ((*pro_path).second[n].end_time) - ((*path).second[k].start_time) + length_time;
+//            for (uint m = k - 1; m < path->second.size(); m++)
+//            {
+//                if (m == k - 1)
+//                {
+//                    (*path).second[m].spend_time += wait_time;
+//                    (*path).second[m].end_time += wait_time;
+//                }
+//                else
+//                {
+//                    (*path).second[m].end_time += wait_time;
+//                    (*path).second[m].start_time += wait_time;
+//                }
+//                new_path = (*path).second;
+//
+//            }
+//        }
+//    }
+//    return new_path;
+//}
+
+
+//ASplanner::pathList ASplanner::Generator::station_is_vechel(uint k,uint pro_size,path_point* point_pro, pair<Car_config,pathList>* path, vector<G_Node>* GNs)
+//{
+//    pathList new_way = {};
+//    int size = path->second.size();
+//    if ((*path).second[k].path.target_index == point_pro->path.target_index && point_pro->index == pro_size
+//        &&point_pro->GN.name.last_id ==0
+//        )
+//    {
+//        //cout <<point_pro.GN.name.main_id<<"-" << point_pro.GN.name.sec_id <<"-"<< point_pro.GN.name.last_id << endl;
+//            if ((*path).second[k].end_time > point_pro->start_time)
+//        {
+//            for (auto it = (*GNs).begin(); it != (*GNs).end(); it++)//É¾³ıÅö×²Â·¶ÎµÄÄ¿±êµã
+//            {
+//                for (uint tt = 0; tt < it->link_edges.size(); tt++)
+//                {
+//                    if (it->link_edges[tt].target_index == point_pro->path.target_index)
+//                    {
+//                        it->link_edges[tt].state = false;
+//                    }
+//                }
+//            }
+//            uint start_index = (*path).second[0].GN.index;
+//            uint end_index = (*path).second[size - 1].GN.index;
+//            new_way = findPath((*GNs)[start_index], (*GNs)[end_index], GNs);
+//            pair<Car_config, pathList> temp;
+//            temp.second = new_way;
+//            temp.first =(*path).first ;
+//            new_way = init_time_windows(&temp, GNs);
+//            std::cout << "ÖØĞÂ¹æ»®Íê³É" << endl;
+//        }
+//    }
+//    return new_way;
+//}
