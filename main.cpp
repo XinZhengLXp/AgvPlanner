@@ -70,7 +70,7 @@ int  findpoint(const char* point)
 int main()
 {
     /*std::string inputFileName = "./test_example/car_config_4cars/car_config_04_01.xml";*/
-    std::string inputFileName = "./config/car_config.xml";
+    std::string inputFileName = "./config/car_config_01.xml";
     std::size_t found = inputFileName.find_last_of(".");
     std::string outputFileName = inputFileName.substr(0, found);
     char* p = &inputFileName[0];
@@ -252,13 +252,19 @@ int main()
         //    pathList pathsec= generator.findPath(GNs[car.target_index], GNs[findpoint(end_point->Value())], &GNs);
         //    std::merge(pathone.begin(), pathone.end(), pathsec.begin(), pathsec.end(), temp_path.second.begin());
         //}
-        uint i = 0;//第i个中间节点,遍历结束时一共有i个中间节点
+        // 
+        //第i个中间节点,遍历结束时一共有i个中间节点
+        pathList single_path;
+        uint index = findpoint(start_point->Value());
         while (middle_point)
         {
             const XMLAttribute* middlepoint = middle_point->FindAttribute("name");
-            middle_points.push_back(middlepoint->Value());
-            i++;
+            
+            single_path = generator.findPath(GNs[index], GNs[findpoint(middlepoint->Value())],&GNs);
+            temp_path.second.insert(temp_path.second.end(), single_path.begin(), single_path.end());//temp_path中加入该节路径
+            index = findpoint(middlepoint->Value());
             middle_point = middle_point->NextSiblingElement("middle_point");
+
         }
         
         temp_path.second = generator.findPath(GNs[findpoint(start_point->Value())], GNs[findpoint(end_point->Value())], &GNs);
@@ -266,8 +272,8 @@ int main()
         agv = agv->NextSiblingElement("agv");
         count++;
     }
-    //计算时间窗
-    generator.time_window(&GNLs, &GNs);
+    //冲突检测
+    generator.conflict_check(&GNLs, &GNs);
     auto end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> duration = end - start;
     std::cout << "程序运行时间：" << duration.count() << "秒" << std::endl;
