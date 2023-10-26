@@ -14,6 +14,7 @@
 using namespace tinyxml2;
 using namespace std;
 using namespace  ASplanner;
+const double work_consum = 5.0;
 vector<pair<Car_config,pathList>> GNLs;
 ifstream  fin;  //声明一个ofstream对象，用于输入文件
 //ofstream fout;  //声明一个ofstream对象，用以输出文件
@@ -60,13 +61,14 @@ int  findpoint(const char* point)
             break;
         }
     }
-    if (it == GNs.end()) {
-       std:: cout << "元素不存在" << endl;
+    /*if (it == GNs.end()) {
+       std::cout <<"元素不存在"<< endl;
        exit(1);
-    }
+    }*/
     //cout <<"索引号："<< i << endl;
     return i;
 }
+
 int main()
 {
     /*std::string inputFileName = "./test_example/car_config_4cars/car_config_04_01.xml";*/
@@ -77,7 +79,11 @@ int main()
     auto start = std::chrono::high_resolution_clock::now();
     XMLDocument doc_agv;
     tinyxml2::XMLError if_success=doc_agv.LoadFile(p);
-    if (if_success != 0) { cout << "配置文件打开失败！"; system("pause"); }
+   /* if (if_success != 0) { 
+        std::cout << "配置文件打开失败！" << endl;
+        ; exit(1);
+    }*/
+    
     doc_agv.Error();
     //读取车辆属性
     ofstream fout;
@@ -199,28 +205,30 @@ int main()
         GNs.push_back(temp_GN);
     }
     ifst.close();
+
+    
+
     ASplanner::Generator generator;
     //generator.setWorldSize({ 25, 25 });//设置地图大小,没有太大意义，可将此行注释掉
     generator.setHeuristic(ASplanner::Heuristic::euclidean);//测距函数，使用仍然是欧氏距离
-   
+    
     int count = 1;
     while (agv) //轮询，读取车辆信息
     {
-        vector<const char*> middle_points;//中间节点信息存在这里
-        XMLElement* middle_point = agv->FirstChildElement("middle_point");
-        
         Car_config car = {};
         pair<Car_config,pathList> temp_path;
+        //temp_path.second.reserve(100);
         const XMLAttribute* start_point = agv->FindAttribute("start_point");
         const XMLAttribute* target_point = agv->FindAttribute("target_point");
         const XMLAttribute* end_point = agv->FindAttribute("end_point");
         const XMLAttribute* type = agv->FindAttribute("type");
         const XMLAttribute* car_v = agv->FindAttribute("car_v");
-       // car.target_index =findpoint(target_point->Value());
-        car.type = std::stod(type->Value());
+        XMLElement* middle_point = agv->FirstChildElement("middle_point");
+       //car.target_index =findpoint(target_point->Value());
+        car.type = std::atoi(type->Value());
         car.car_v = std::stod(car_v->Value());
-        car.index = count;
-       // cout << "car.type=" << car.type << " " << "car.car_v=" << car.car_v << " " << endl;
+        //car.index = count;
+       
         temp_path.first = car;
        // cout << "终点索引" << findpoint(end_point->Value()) << endl;
         //{    int index_forward;
@@ -254,29 +262,66 @@ int main()
         //}
         // 
         //第i个中间节点,遍历结束时一共有i个中间节点
-        pathList single_path;
-        uint index = findpoint(start_point->Value());
-        while (middle_point)
-        {
-            const XMLAttribute* middlepoint = middle_point->FindAttribute("name");
-            
-            single_path = generator.findPath(GNs[index], GNs[findpoint(middlepoint->Value())],&GNs);
-            temp_path.second.insert(temp_path.second.end(), single_path.begin(), single_path.end());//temp_path中加入该节路径
-            index = findpoint(middlepoint->Value());
-            middle_point = middle_point->NextSiblingElement("middle_point");
+        car_path single_path;
+        single_path.first = car;
+        uint point_index = findpoint(start_point->Value());
+        double time_cnt = 0.0;
+            while (middle_point)
+            {
+                const XMLAttribute* middlepoint = middle_point->FindAttribute("name");
+                //cout << point_index << endl;
 
-        }
+                single_path.second = generator.findPath(GNs[point_index], GNs[findpoint(middlepoint->Value())],&GNs);
+                
+                single_path.second= generator.init_time_windows(time_cnt,&single_path, &GNs);
+
+                uint single_size = single_path.second.size();
+                uint index = single_path.second[single_size-2].path.target_index;
+
+                single_path.second[single_size-1].GN.index =index;                                  //每段路的最后一个点初始化
+                single_path.second[single_size-1].path.source_index = index;
+                single_path.second[single_size - 1].path.target_index = index;
+                single_path.second[single_size - 1].start_time = single_path.second[single_size-2].end_time;
+                single_path.second[single_size - 1].spend_time =work_consum ;
+                single_path.second[single_size - 1].end_time = single_path.second[single_size - 1].start_time + work_consum;
+
+                time_cnt = single_path.second[single_size - 1].end_time;
+                //temp_path中加入该节路径
+                for (uint m = 0; m < single_size; m++) {
+                    temp_path.second.push_back(single_path.second[m]); 
+                }
+                single_path.second.clear();
+                point_index = findpoint(middlepoint->Value()); 
+                middle_point = middle_point->NextSiblingElement("middle_point");
+                //cout << temp_path.second.size() << endl;
+            }
+
+            single_path.second = generator.findPath(GNs[point_index], GNs[findpoint(end_point->Value())], &GNs); \
+                //cout << findpoint(end_point->Value()) << endl;
+        single_path.second = generator.init_time_windows(time_cnt,&single_path,&GNs);
         
-        temp_path.second = generator.findPath(GNs[findpoint(start_point->Value())], GNs[findpoint(end_point->Value())], &GNs);
+        for (uint m = 0; m < single_path.second.size(); m++) {
+            temp_path.second.push_back(single_path.second[m]);
+        }
+        single_path.second.clear();
+       // cout << temp_path.second.size() << endl;
+        uint size = temp_path.second.size();
+        for (uint j = 0; j < size;j++) {
+            temp_path.second[j].index = j;
+            if (j == size - 1) { temp_path.second[j].index = -1; }
+        }
+       
         GNLs.push_back(temp_path);  //每一个AGV生成的轨迹
         agv = agv->NextSiblingElement("agv");
         count++;
     }
+
+
     //冲突检测
     generator.conflict_check(&GNLs, &GNs);
-    auto end = std::chrono::high_resolution_clock::now();
+   /* auto end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> duration = end - start;
-    std::cout << "程序运行时间：" << duration.count() << "秒" << std::endl;
+    std::cout << "程序运行时间：" << duration.count() << "秒" << std::endl;*/
     for (uint i = 0; i < GNLs.size(); i++)
     {
         for (auto& GN_point : GNLs[i].second) {
@@ -308,8 +353,3 @@ int main()
     fout2.close();
     
 }
-
-
-
-     
-   
