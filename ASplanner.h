@@ -95,12 +95,13 @@ namespace  ASplanner
             pathList findPath(G_Node source_, G_Node target_, vector<G_Node> *GNs);
             bool opposing_conflict(car_path* path,uint k ,car_path* pro_path,uint n, vector<G_Node>* GNs);
             void init_time_windows(double time_cnt,pair<Car_config, pathList> *path,vector<G_Node>*  GNs);
-            pathList collsion_collection(car_path* path,uint k,car_path* pro_path,uint n, vector<G_Node>* GNs);
+            bool collsion_collection(car_path* path,uint k,car_path* pro_path,uint n, vector<G_Node>* GNs);
             double conflict_check(vector<pair<Car_config, pathList>>* GNLs, vector<G_Node>* GNs);
             car_path colliding_conflict(car_path* path, uint k, car_path* pro_path, uint n, vector<G_Node>* GNs);
             void node_conflict(car_path* path,uint k, car_path* pro_path,uint n, vector<G_Node>* GNs);
             pathList station_is_vechel(uint k, uint pro_size, path_point* point_pro, pair<Car_config, pathList>* path, vector<G_Node>* GNs);
             bool mini_distance_between_vechels(car_path* path, uint k, car_path* pro_path, uint n, vector<G_Node>* GNs);
+            bool node_check(car_path* path, uint k, car_path* pro_path, uint n, vector<G_Node>* GNs);
             //int time_window_dan(vector<pathList>* paths, int count, vector<G_Node>* GNs, vector<Gdge_property>* GEs);
             //int A_star_time_window(vector<pathList>* paths, G_Node source_, G_Node target_, vector<G_Node>* GNs, vector<Gdge_property>* GEs);
             void addCollision(Vec2i coordinates_);
@@ -119,9 +120,9 @@ namespace  ASplanner
         static Vec2i getDelta(Vec2i source_, Vec2i target_);
 
     public:
-        static uint manhattan(Vec2i source_, Vec2i target_);
-        static uint euclidean(Vec2i source_, Vec2i target_);
-        static uint octagonal(Vec2i source_, Vec2i target_);
+        static double manhattan(Vec2i source_, Vec2i target_);
+        static double euclidean(Vec2i source_, Vec2i target_);
+        static double octagonal(Vec2i source_, Vec2i target_);
     };
 
 
