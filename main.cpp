@@ -72,7 +72,7 @@ int  findpoint(const char* point)
 int main()
 {
     /*std::string inputFileName = "./test_example/car_config_4cars/car_config_04_01.xml";*/
-    std::string inputFileName = "./config/car_config_01.xml";
+    std::string inputFileName = "./config/car_config_03_03.xml";
     std::size_t found = inputFileName.find_last_of(".");
     std::string outputFileName = inputFileName.substr(0, found);
     char* p = &inputFileName[0];
@@ -271,9 +271,9 @@ int main()
                 const XMLAttribute* middlepoint = middle_point->FindAttribute("name");
                 //cout << point_index << endl;
 
-                single_path.second = generator.findPath(GNs[point_index], GNs[findpoint(middlepoint->Value())],&GNs);
+                 generator.findPath(GNs[point_index], GNs[findpoint(middlepoint->Value())],&GNs);
                 
-                single_path.second= generator.init_time_windows(time_cnt,&single_path, &GNs);
+                generator.init_time_windows(time_cnt,&single_path, &GNs);
 
                 uint single_size = single_path.second.size();
                 uint index = single_path.second[single_size-2].path.target_index;
@@ -298,7 +298,7 @@ int main()
 
             single_path.second = generator.findPath(GNs[point_index], GNs[findpoint(end_point->Value())], &GNs); \
                 //cout << findpoint(end_point->Value()) << endl;
-        single_path.second = generator.init_time_windows(time_cnt,&single_path,&GNs);
+        generator.init_time_windows(time_cnt,&single_path,&GNs);
         
         for (uint m = 0; m < single_path.second.size(); m++) {
             temp_path.second.push_back(single_path.second[m]);
