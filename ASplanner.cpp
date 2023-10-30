@@ -174,10 +174,9 @@ double ASplanner::Generator::conflict_check(vector<pair<Car_config,pathList>>* p
                         }*/
 
                         //同向冲突
-                        car_path new_colliding_way = colliding_conflict(&(*paths)[i], k, &(*paths)[j], n, GNs);
-                        if (new_colliding_way.second.size() !=0)
+                        bool is_collidiong_return= colliding_conflict(&(*paths)[i], k, &(*paths)[j], n, GNs);
+                        if (is_collidiong_return)
                         {
-                            (*paths)[i] = new_colliding_way;
                             flag = true;
                             break;
                         }
@@ -438,6 +437,7 @@ bool ASplanner::Generator::opposing_conflict(car_path* path, uint k, car_path* p
 bool ASplanner::Generator::collsion_collection(car_path* path, uint k, car_path* pro_path, uint n, vector<G_Node>* GNs)
 {
      bool is_return=false;
+     bool is_solve = false;
      auto point_pro = &(*pro_path).second[n];
      auto GN_point = &(*path).second[k];
      uint pro_size = pro_path->second.size();
@@ -529,11 +529,17 @@ bool ASplanner::Generator::collsion_collection(car_path* path, uint k, car_path*
                                 (*path).second[u].end_time += wait_time;
                             }
                             is_return = true;
+                            is_solve=true;
                             break;
                         }
                     }
                 //  如果没有找到分岔路口:解决方案：.....
-
+                
+                if (!is_solve) {
+                     cout << "需要调整优先级,该功能暂未添加" << endl;
+                     exit(1);
+                }
+               
                 }
                 else {//优先级高的车先到
                     if (GN_point->end_time < (mini_distance + (pro_length) / pro_path->first.car_v) + GN_point->end_time && k>0) {
@@ -634,8 +640,9 @@ void ASplanner::Generator::init_time_windows(double time_cnt,pair<Car_config,pat
     }
 }
 //同向冲突
-ASplanner:: car_path ASplanner::Generator::colliding_conflict(car_path* path, uint k, car_path* pro_path, uint n, vector<G_Node>* GNs)
+bool ASplanner::Generator::colliding_conflict(car_path* path, uint k, car_path* pro_path, uint n, vector<G_Node>* GNs)
 {
+    bool is_return = false;
     car_path new_path = {};
     auto GN_point = &(*path).second[k];
     auto point_pro = &(*pro_path).second[n];
@@ -643,11 +650,12 @@ ASplanner:: car_path ASplanner::Generator::colliding_conflict(car_path* path, ui
     uint size = path->second.size();
     if(GN_point->GN.index == point_pro->GN.index 
         &&GN_point->path.target_index == point_pro->path.target_index){     //同一段路径
-        if (k < (size - 2) && n < (pro_size - 2)//保证此段路不为最后一段路
-            && GN_point->end_time <point_pro->end_time   //此节点先到
-            && (*path).second[k + 1].end_time >(*pro_path).second[n + 1].end_time) {//但是下一个节点被超了
+        
+        if (k < (size - 2) && n < (pro_size - 2)                           //保证此段路不为最后一段路
+            && GN_point->start_time < point_pro->start_time                    //此节点先到
+            && (*path).second[k + 1].start_time >(*pro_path).second[n + 1].start_time) {    //但是下一个节点被超了
             bool is_Bifurcation = false;     //是否有分叉路
-            for (uint ii = 0; ii < k && ii < n; ii++)//取最小值
+            for (uint ii = 1; ii < (k+1) && ii < n; ii++)//取最小值
             {
                 if ((*path).second[k - ii].GN.index != (*pro_path).second[n - ii].GN.index
                     && (*path).second[k - ii].path.target_index == (*pro_path).second[n - ii].path.target_index) {
@@ -662,23 +670,24 @@ ASplanner:: car_path ASplanner::Generator::colliding_conflict(car_path* path, ui
                         (*path).second[u].end_time += wait_time;
                     }
                     is_Bifurcation = true;
-                    new_path = (*path);
+                    is_return = true;
                     break;
                 }
             }
 
-            //if (!is_Bifurcation) {//没找到岔路
-            //    for (auto& gdge : GN_point->GN.link_edges) {
-            //        gdge.target_index;
-            //    }
-            //}
+            if (!is_Bifurcation) {//没找到岔路    调整优先级
+                /*for (auto& gdge : GN_point->GN.link_edges) {
+                        gdge.target_index;
+                }*/
+                cout << "需要调整优先级,该功能暂未添加" << endl;
+                exit(1);
+            }
         
         }
-
-   else if (GN_point->start_time < point_pro->end_time
-            && GN_point->start_time > point_pro->start_time
-            && GN_point->end_time < point_pro->end_time
-            && GN_point->end_time > point_pro->start_time) {
+       
+   else if (k < (size - 2) && n < (pro_size - 2)
+        &&GN_point->start_time<point_pro->start_time
+            && (*path).second[k+1].start_time < (*pro_path).second[n+1].start_time) {
             //采取后车减速
             cout << "减速执行等待。" << (*path).first.car_v << "m/s减速为" << pro_path->first.car_v << "m/s" << endl;
             (*path).first.car_v = pro_path->first.car_v;
@@ -689,11 +698,9 @@ ASplanner:: car_path ASplanner::Generator::colliding_conflict(car_path* path, ui
                 moderate_time += (*path).second[m].spend_time;
                 (*path).second[m].end_time = moderate_time;
             }
-            new_path = (*path);
         }
- 
     }
-    return new_path;
+    return is_return;
 }
 
 //节点冲突
@@ -838,10 +845,10 @@ bool ASplanner::Generator::mini_distance_between_vechels(car_path* path, uint k,
                         break;
                     }
                 }
-            }
-            else if (is_Bifurcation) {
-            
-                cout << "需要调整优先级" << endl;
+                if (!is_Bifurcation) {
+                    cout << "需要调整优先级,该功能暂未添加" << endl;
+                    exit(1);
+                }
             }
          }
 
@@ -884,6 +891,28 @@ bool ASplanner::Generator::node_check(car_path* path, uint k, car_path* pro_path
 
     }
     return is_return;
+}
+
+bool ASplanner::Generator::store_is_vechel(car_path* path, uint k, car_path* pro_path, uint n, vector<G_Node>* GNs) {
+    bool is_return = false;
+    auto GN_point = &(*path).second[k];
+    auto point_pro = &(*pro_path).second[n];
+    uint size = path->second.size();
+    uint pro_size = pro_path->second.size();
+
+    /*if (point_pro->GN.name.last_id==0 &&(*GNs)[point_pro->path.target_index].name.last_id !=0 ){
+
+        for (auto& path : (*pro_path).second) {
+        
+            string name;
+        }
+    
+    
+    
+    }*/
+
+
+
 }
 
 //ASplanner::pathList ASplanner::Generator::station_is_vechel(uint k,uint pro_size,path_point* point_pro, pair<Car_config,pathList>* path, vector<G_Node>* GNs)
