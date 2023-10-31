@@ -39,7 +39,7 @@ namespace  ASplanner
     struct Car_config
     {
         unsigned int type=0;
-        //unsigned int index;
+        unsigned int index;
         //unsigned int target_index;
         double car_v;
     };
@@ -95,13 +95,14 @@ namespace  ASplanner
             pathList findPath(G_Node source_, G_Node target_, vector<G_Node> *GNs);
             bool opposing_conflict(car_path* path,uint k ,car_path* pro_path,uint n, vector<G_Node>* GNs);
             void init_time_windows(double time_cnt,pair<Car_config, pathList> *path,vector<G_Node>*  GNs);
-            bool collsion_collection(car_path* path,uint k,car_path* pro_path,uint n, vector<G_Node>* GNs);
+            bool collsion_collection(car_path* path,uint k,car_path* pro_path,uint n, vector<G_Node>* GNs, vector<pair<Car_config, pathList>>* paths, uint i, uint j);
             double conflict_check(vector<pair<Car_config, pathList>>* GNLs, vector<G_Node>* GNs);
-            bool colliding_conflict(car_path* path, uint k, car_path* pro_path, uint n, vector<G_Node>* GNs);
+            bool colliding_conflict(car_path* path, uint k, car_path* pro_path, uint n, vector<G_Node>* GNs,vector<pair<Car_config, pathList>>* paths, uint i, uint j);
             void node_conflict(car_path* path,uint k, car_path* pro_path,uint n, vector<G_Node>* GNs);
             pathList station_is_vechel(uint k, uint pro_size, path_point* point_pro, pair<Car_config, pathList>* path, vector<G_Node>* GNs);
-            bool mini_distance_between_vechels(car_path* path, uint k, car_path* pro_path, uint n, vector<G_Node>* GNs);
+            bool mini_distance_between_vechels(car_path* path, uint k, car_path* pro_path, uint n, vector<G_Node>* GNs, vector<pair<Car_config, pathList>>* paths, uint i, uint j);
             bool node_check(car_path* path, uint k, car_path* pro_path, uint n, vector<G_Node>* GNs);
+            void change_priority(vector<pair<Car_config, pathList>>* paths, uint i, uint j);
             bool store_is_vechel(car_path* path, uint k, car_path* pro_path, uint n, vector<G_Node>* GNs);
             //int time_window_dan(vector<pathList>* paths, int count, vector<G_Node>* GNs, vector<Gdge_property>* GEs);
             //int A_star_time_window(vector<pathList>* paths, G_Node source_, G_Node target_, vector<G_Node>* GNs, vector<Gdge_property>* GEs);
