@@ -39,7 +39,7 @@ namespace  ASplanner
     struct Car_config
     {
         unsigned int type=0;
-        unsigned int index;
+        int index=0;
         //unsigned int target_index;
         double car_v;
     };
