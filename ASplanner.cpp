@@ -957,38 +957,30 @@ void ASplanner::Generator::store_is_vechel(car_path* path, uint k, car_path* pro
                             }
                         }
                     }
-                    int* new_satrt_point=nullptr;
-                    int* new_end_point=nullptr;
-                    for (uint c = 0; c < (path->first.middle_point.size()-1);c++) {
+                    uint* new_satrt_point=nullptr;
+                    uint* new_end_point=nullptr;
+                    uint c = 0;
+                    uint* start_point_index = nullptr;
+                    uint* target_point_index = nullptr;
+                    for (c; c < (path->first.middle_point.size()-1);c++) {
                         if ((path->first.middle_point[c].first< GN_point->index|| path->first.middle_point[c].first == GN_point->index)
                             && GN_point->index < path->first.middle_point[c+1].first) {
                             new_satrt_point = &(*path).first.middle_point[c].second;
                             new_end_point = &(*path).first.middle_point[c+1].second;
+                            break;
                         }
                     }
+                    start_point_index = &(path->first.middle_point[c].first);
+                    target_point_index=&(path->first.middle_point[c+1].first)
+                    //删除老的路段
+                    (*path).second.erase((*path).second.begin()+(*start_point_index), (*path).second.begin() + target_point_index);
 
-                    //删除路段
-                    for (auto GN = (*path).second.begin(); GN != (*path).second.end();) {
-                        std::vector<int> vec = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
-
-                        // 使用erase方法删除第3到第7个元素
-                        vec.erase(vec.begin() + 2, vec.begin() + 7);
-
-                        // 打印剩余的元素
-                        for (const auto& elem : vec) {
-                            std::cout << elem << ' ';
-                        }
-                    }
                     pathList new_way=findPath((*GNs)[*new_satrt_point],(*GNs)[*new_end_point],GNs);
+                    car_path temp_path(path->first,new_way);
 
-                    (*path).second = new_way;
-                    new_way.clear();
-                    init_time_windows(0.0, &(*path), GNs);
-                   /* for ()
-                    {
-
-
-                    }*/
+                    init_time_windows(path->second[path->first.middle_point[c].first-1].end_time, &(*path), GNs);
+                    
+                    (*path).second.insert(path->second.begin()+*start_point_index,path->second.begin()+*start_point_index+1, temp_path.second.end());
                 }
 
                 else if (pro_out->path.target_index != GN_point->index) {//最简单的情况
