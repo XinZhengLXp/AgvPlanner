@@ -61,18 +61,13 @@ int  findpoint(const char* point)
             break;
         }
     }
-    /*if (it == GNs.end()) {
-       std::cout <<"元素不存在"<< endl;
-       exit(1);
-    }*/
-    //cout <<"索引号："<< i << endl;
     return i;
 }
 
 int main()
 {
     /*std::string inputFileName = "./test_example/car_config_4cars/car_config_04_01.xml";*/
-    std::string inputFileName = "./config/car_config_03_07.xml";
+    std::string inputFileName = "./config/car_config_04.xml";
     std::size_t found = inputFileName.find_last_of(".");
     std::string outputFileName = inputFileName.substr(0, found);
     char* p = &inputFileName[0];
@@ -216,7 +211,7 @@ int main()
     while (agv) //轮询，读取车辆信息
     {
         Car_config car = {};
-        pair<Car_config,pathList> temp_path;
+        pair<Car_config, pathList> temp_path;
         //temp_path.second.reserve(100);
         const XMLAttribute* start_point = agv->FindAttribute("start_point");
         const XMLAttribute* target_point = agv->FindAttribute("target_point");
@@ -224,93 +219,109 @@ int main()
         const XMLAttribute* type = agv->FindAttribute("type");
         const XMLAttribute* car_v = agv->FindAttribute("car_v");
         XMLElement* middle_point = agv->FirstChildElement("middle_point");
-       //car.target_index =findpoint(target_point->Value());
+        //car.target_index =findpoint(target_point->Value());
         car.type = std::atoi(type->Value());
         car.car_v = std::stod(car_v->Value());
-        //car.index = count;
-       
-        temp_path.first = car;
-       // cout << "终点索引" << findpoint(end_point->Value()) << endl;
-        //{    int index_forward;
-        //     int index_backward;//下个点
-        //     double x, y;
-        //     //以上信息需要给出
-        //     double length_for=pow(std::pow(GNs[index_forward].coordinates.x,2)+ std::pow(GNs[index_forward].coordinates.y, 2),0.5);
-        //     double length_back = pow(std::pow(GNs[index_backward].coordinates.x, 2) + std::pow(GNs[index_backward].coordinates.y, 2), 0.5);
-        //     Gdge_property temp1 = {true,0,length_for,GNs.size()+1,index_forward };
-        //    Gdge_property temp2= { true,0,length_back,GNs.size()+ 1,index_backward };
-        //    vector<Gdge_property> gdge = { temp1 ,temp2};
-        //    G_Node new_node = { {0,0,0},GNs.size() + 1,{x,y}, gdge};
-        //    GNs.push_back(new_node);
+        car.index = count;
 
-        //    for (auto it = GNs.begin(); it != GNs.end(); it++)
-        //    {       
-        //        if (it->index == index_forward)
-        //        {
-        //            Gdge_property temp = {true,0,index_forward ,GNs.size() + 1 };
-        //            it->link_edges.push_back(temp);
-        //        }
-        //        if (it->index == index_backward)
-        //        {
-        //            Gdge_property temp = { true,0,index_backward,GNs.size() + 2 };
-        //            it->link_edges.push_back(temp);
-        //        }
-        //    }
-        //    pathList pathone=generator.findPath(GNs[findpoint(start_point->Value())], GNs[car.target_index], &GNs);
-        //    pathList pathsec= generator.findPath(GNs[car.target_index], GNs[findpoint(end_point->Value())], &GNs);
-        //    std::merge(pathone.begin(), pathone.end(), pathsec.begin(), pathsec.end(), temp_path.second.begin());
-        //}
-        // 
-        //第i个中间节点,遍历结束时一共有i个中间节点
+        temp_path.first = car;
+        // cout << "终点索引" << findpoint(end_point->Value()) << endl;
+         //{    int index_forward;
+         //     int index_backward;//下个点
+         //     double x, y;
+         //     //以上信息需要给出
+         //     double length_for=pow(std::pow(GNs[index_forward].coordinates.x,2)+ std::pow(GNs[index_forward].coordinates.y, 2),0.5);
+         //     double length_back = pow(std::pow(GNs[index_backward].coordinates.x, 2) + std::pow(GNs[index_backward].coordinates.y, 2), 0.5);
+         //     Gdge_property temp1 = {true,0,length_for,GNs.size()+1,index_forward };
+         //    Gdge_property temp2= { true,0,length_back,GNs.size()+ 1,index_backward };
+         //    vector<Gdge_property> gdge = { temp1 ,temp2};
+         //    G_Node new_node = { {0,0,0},GNs.size() + 1,{x,y}, gdge};
+         //    GNs.push_back(new_node);
+
+         //    for (auto it = GNs.begin(); it != GNs.end(); it++)
+         //    {       
+         //        if (it->index == index_forward)
+         //        {
+         //            Gdge_property temp = {true,0,index_forward ,GNs.size() + 1 };
+         //            it->link_edges.push_back(temp);
+         //        }
+         //        if (it->index == index_backward)
+         //        {
+         //            Gdge_property temp = { true,0,index_backward,GNs.size() + 2 };
+         //            it->link_edges.push_back(temp);
+         //        }
+         //    }
+         //    pathList pathone=generator.findPath(GNs[findpoint(start_point->Value())], GNs[car.target_index], &GNs);
+         //    pathList pathsec= generator.findPath(GNs[car.target_index], GNs[findpoint(end_point->Value())], &GNs);
+         //    std::merge(pathone.begin(), pathone.end(), pathsec.begin(), pathsec.end(), temp_path.second.begin());
+         //}
+         // 
+         //第i个中间节点,遍历结束时一共有i个中间节点
         car_path single_path;
         single_path.first = car;
         uint point_index = findpoint(start_point->Value());
         double time_cnt = 0.0;
-            while (middle_point)
-            {
-                const XMLAttribute* middlepoint = middle_point->FindAttribute("name");
-                //cout << point_index << endl;
+        while (middle_point)
+        {
+            const XMLAttribute* middlepoint = middle_point->FindAttribute("name");
+            //cout << point_index << endl;
 
-                 generator.findPath(GNs[point_index], GNs[findpoint(middlepoint->Value())],&GNs);
-                
-                generator.init_time_windows(time_cnt,&single_path, &GNs);
+            uint target_p = findpoint(middlepoint->Value());               //目标点
+            generator.findPath(GNs[point_index], GNs[target_p], &GNs);
+            //point_index为起点                 
+            generator.init_time_windows(time_cnt, &single_path, &GNs);
 
-                uint single_size = single_path.second.size();
-                uint index = single_path.second[single_size-2].path.target_index;
+            uint single_size = single_path.second.size();
+            uint index = single_path.second[single_size - 2].path.target_index;
 
-                single_path.second[single_size-1].GN.index =index;                                  //每段路的最后一个点初始化
-                single_path.second[single_size-1].path.source_index = index;
-                single_path.second[single_size - 1].path.target_index = index;
-                single_path.second[single_size - 1].start_time = single_path.second[single_size-2].end_time;
-                single_path.second[single_size - 1].spend_time =work_consum ;
-                single_path.second[single_size - 1].end_time = single_path.second[single_size - 1].start_time + work_consum;
+            single_path.second[single_size - 1].GN.index = index;        //每段路的最后一个点初始化
+            single_path.second[single_size - 1].path.source_index = index;
+            single_path.second[single_size - 1].path.target_index = index;
+            single_path.second[single_size - 1].start_time = single_path.second[single_size - 2].end_time;
+            single_path.second[single_size - 1].spend_time = work_consum;
+            single_path.second[single_size - 1].end_time = single_path.second[single_size - 1].start_time + work_consum;
 
-                time_cnt = single_path.second[single_size - 1].end_time;
-                //temp_path中加入该节路径
-                for (uint m = 0; m < single_size; m++) {
-                    temp_path.second.push_back(single_path.second[m]); 
-                }
-                single_path.second.clear();
-                point_index = findpoint(middlepoint->Value()); 
-                middle_point = middle_point->NextSiblingElement("middle_point");
-                //cout << temp_path.second.size() << endl;
+            time_cnt = single_path.second[single_size - 1].end_time;    //更新时间
+
+            pair<int, int>temp_pair(temp_path.second.size(), point_index);//起点的（索引号，索引号）
+            temp_path.first.middle_point.push_back(temp_pair);    //记录该段路的起点信息
+
+            //temp_path中加入该节路径
+            for (uint m = 0; m < single_size; m++) {
+                temp_path.second.push_back(single_path.second[m]);
             }
+            single_path.second.clear();
 
-            single_path.second = generator.findPath(GNs[point_index], GNs[findpoint(end_point->Value())], &GNs); \
-                //cout << findpoint(end_point->Value()) << endl;
+            temp_pair = { temp_path.second.size() - 1, target_p };     //记录该段路的终点信息
+            temp_path.first.middle_point.push_back(temp_pair);
+
+            point_index = target_p;         //更新起点信息
+            middle_point = middle_point->NextSiblingElement("middle_point");
+        }
+    
+         //最后一段路
+        single_path.second = generator.findPath(GNs[point_index], GNs[findpoint(end_point->Value())], &GNs); \
+
+        pair<int, int>temp_pair(temp_path.second.size(), point_index);
+        temp_path.first.middle_point.push_back(temp_pair);
+
         generator.init_time_windows(time_cnt,&single_path,&GNs);
         
         for (uint m = 0; m < single_path.second.size(); m++) {
             temp_path.second.push_back(single_path.second[m]);
         }
         single_path.second.clear();
-       // cout << temp_path.second.size() << endl;
+
+        temp_pair = { temp_path.second.size() - 1, findpoint(end_point->Value()) };
+        temp_path.first.middle_point.push_back(temp_pair);
+
         uint size = temp_path.second.size();
         for (uint j = 0; j < size;j++) {
             temp_path.second[j].index = j;
             if (j == size - 1) { temp_path.second[j].index = -1; }
         }
-       
+        //cout << temp_path.first.middle_point.size() << endl;
+
         GNLs.push_back(temp_path);  //每一个AGV生成的轨迹
         agv = agv->NextSiblingElement("agv");
         count++;
@@ -319,9 +330,28 @@ int main()
 
     //冲突检测
     generator.conflict_check(&GNLs, &GNs);
-   /* auto end = std::chrono::high_resolution_clock::now();
+
+    for (auto it = GNLs.begin(); it != GNLs.end();) {//删除空元素
+        if (it->first.index == -1) {
+            it = GNLs.erase(it);
+        }
+        else { ++it; }
+    }
+    cout << GNLs.size() << endl;
+
+    //for (auto it = GNLs.begin(); it != GNLs.end();) {//删除空元素
+    //    cout << (*it).first.index << endl;
+    //}
+
+    //cout << GNLs.size() << endl;
+    //重新排序
+    sort(GNLs.begin(), GNLs.end(),[](const pair<Car_config,pathList>& a, pair<Car_config, pathList>& b) {
+            return a.first.index < b.first.index;
+        });
+
+    auto end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> duration = end - start;
-    std::cout << "程序运行时间：" << duration.count() << "秒" << std::endl;*/
+    std::cout << "system consum time: " << duration.count() << std::endl;
     for (uint i = 0; i < GNLs.size(); i++)
     {
         for (auto& GN_point : GNLs[i].second) {
