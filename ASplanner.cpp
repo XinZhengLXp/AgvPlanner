@@ -120,9 +120,9 @@ double ASplanner::Generator::conflict_check(vector<pair<Car_config,pathList>>* p
                         }
 
                        // 节点冲突
-                        if ((*paths)[j].second.size() >2 ) {
+                        /*if ((*paths)[j].second.size() >2 ) {
                              node_conflict(&(*paths)[i],k,&(*paths)[j],n, GNs);
-                        }
+                        }*/
 
                         //同向冲突
                         if ((*paths)[j].first.index !=-1) {
@@ -378,44 +378,8 @@ bool ASplanner::Generator::opposing_conflict(car_path* path, uint k, car_path* p
                 if (((path->first.car_v > pro_path->first.car_v) || (path->first.car_v == pro_path->first.car_v)) && k > 0){
                     
                     auto GN_pointg = &(*path).second[k - 1];
-                    for (auto it = (*GNs).begin(); it != (*GNs).end(); it++)//删除碰撞路段的目标点
-                    {
-                        if (it->index == GN_pointg->GN.index)
-                        {
-                            for (int tt = 0; tt < it->link_edges.size(); tt++){
-                                if (it->link_edges[tt].target_index == GN_pointg->path.target_index){//如果上个点目标点为该点，删除该条路径
-                                
-                                    it->link_edges[tt].state = false;
-                                }
-                            }
-                        }
-                    }
-                    int* new_satrt_point = nullptr;
-                    int* new_end_point = nullptr;
-                    uint c = 0;
-                    int* start_point_index = nullptr;
-                    int* target_point_index = nullptr;
-                    for (c; c < (path->first.middle_point.size() - 1); c++) {
-                        if ((path->first.middle_point[c].first < GN_pointg->index || path->first.middle_point[c].first == GN_pointg->index)
-                            && GN_point->index < path->first.middle_point[c + 1].first) {
-                            new_satrt_point = &(*path).first.middle_point[c].second;
-                            new_end_point = &(*path).first.middle_point[c + 1].second;
-                            break;
-                        }
-                    }
-                    start_point_index = &(path->first.middle_point[c].first);
-                    target_point_index = &(path->first.middle_point[c + 1].first);
-                    //删除老的路段
-                    (*path).second.erase((*path).second.begin() + (*start_point_index), (*path).second.begin() + (*target_point_index));
-
-                    pathList new_way = findPath((*GNs)[*new_satrt_point], (*GNs)[*new_end_point], GNs);
-                    car_path temp_path(path->first, new_way);
-
-                    //时间窗初始化
-                    init_time_windows(path->second[(path->first.middle_point[c].first) - 1].end_time, path, GNs);
-
-                    //插入新路径
-                    (*path).second.insert(path->second.begin() + *start_point_index, temp_path.second.begin(), temp_path.second.end());
+                    replanning_path(path,GN_pointg,GNs);
+                    
                     std::cout << "相向冲突规划完成" << endl;
                     is_conflict = true;
                     is_solve = true;
@@ -425,45 +389,9 @@ bool ASplanner::Generator::opposing_conflict(car_path* path, uint k, car_path* p
 
                     auto GN_pointg = &(*path).second[0];
                     if (k > 1) { GN_pointg = &(*path).second[k - 2]; }
-                    for (auto it = (*GNs).begin(); it != (*GNs).end(); it++)//删除碰撞路段的目标点
-                    {
-                        if (it->index == GN_pointg->GN.index)
-                        {
-                            for (int tt = 0; tt < it->link_edges.size(); tt++) {
-                                if (it->link_edges[tt].target_index == GN_pointg->path.target_index) {//如果上个点目标点为该点，删除该条路径
 
-                                    it->link_edges[tt].state = false;
-                                }
-                            }
-                        }
-                    }
-                    int* new_satrt_point = nullptr;
-                    int* new_end_point = nullptr;
-                    uint c = 0;
-                    int* start_point_index = nullptr;
-                    int* target_point_index = nullptr;
-                    for (c; c < (path->first.middle_point.size() - 1); c++) {
-                        if ((path->first.middle_point[c].first < GN_pointg->index || path->first.middle_point[c].first == GN_pointg->index)
-                            && GN_point->index < path->first.middle_point[c + 1].first) {
-                            new_satrt_point = &(*path).first.middle_point[c].second;
-                            new_end_point = &(*path).first.middle_point[c + 1].second;
-                            break;
-                        }
-                    }
-                    start_point_index = &(path->first.middle_point[c].first);
-                    target_point_index = &(path->first.middle_point[c + 1].first);
-                    //删除老的路段
-                    (*path).second.erase((*path).second.begin() + (*start_point_index), (*path).second.begin() + (*target_point_index));
+                    replanning_path(path, GN_pointg, GNs);
 
-                    pathList new_way = findPath((*GNs)[*new_satrt_point], (*GNs)[*new_end_point], GNs);
-                    car_path temp_path(path->first, new_way);
-
-                    //时间窗初始化
-                    init_time_windows(path->second[(path->first.middle_point[c].first) - 1].end_time, path, GNs);
-
-                    //插入新路径
-                    (*path).second.insert(path->second.begin() + *start_point_index, temp_path.second.begin(), temp_path.second.end());
-                    
                     std::cout << "相向冲突规划完成" << endl;
                     is_conflict = true;
                     is_solve = true;
@@ -535,45 +463,7 @@ bool ASplanner::Generator::collsion_collection(car_path* path, uint k, car_path*
                 else {   //试探完了，没办法了。重新规划
                     auto GN_pointg = &(path->second[0]);
                     if (k != 0) { GN_pointg = &(path->second[k - 1]); }
-                    for (auto it = (*GNs).begin(); it != (*GNs).end(); it++)//删除碰撞路段的目标点
-                    {
-                        if (it->index == GN_pointg->GN.index)
-                        {
-                            for (uint tt = 0; tt < it->link_edges.size(); tt++)
-                            {
-                                if (it->link_edges[tt].target_index == point_pro->path.target_index){
-                                    it->link_edges[tt].state = false;
-                                }
-                            }
-                        }
-                    }
-                    int* new_satrt_point = nullptr;
-                    int* new_end_point = nullptr;
-                    uint c = 0;
-                    int* start_point_index = nullptr;
-                    int* target_point_index = nullptr;
-                    for (c; c < (path->first.middle_point.size() - 1); c++) {
-                        if ((path->first.middle_point[c].first < GN_pointg->index || path->first.middle_point[c].first == GN_pointg->index)
-                            && GN_point->index < path->first.middle_point[c + 1].first) {
-                            new_satrt_point = &(*path).first.middle_point[c].second;
-                            new_end_point = &(*path).first.middle_point[c + 1].second;
-                            break;
-                        }
-                    }
-                    start_point_index = &(path->first.middle_point[c].first);
-                    target_point_index = &(path->first.middle_point[c + 1].first);
-                    //删除老的路段
-                    (*path).second.erase((*path).second.begin() + (*start_point_index), (*path).second.begin() + (*target_point_index));
-
-                    pathList new_way = findPath((*GNs)[*new_satrt_point], (*GNs)[*new_end_point], GNs);
-                    car_path temp_path(path->first, new_way);
-
-                    //时间窗初始化
-                    init_time_windows(path->second[(path->first.middle_point[c].first) - 1].end_time, path, GNs);
-
-                    //插入新路径
-                    (*path).second.insert(path->second.begin() + *start_point_index, temp_path.second.begin(), temp_path.second.end());
-                    
+                    replanning_path(path, GN_pointg, GNs);
                     is_return = true;
                    /* pair<Car_config, pathList>temp = (*paths)[j];
                     if (i == ((*paths).size() - 1)) {
@@ -971,33 +861,7 @@ bool ASplanner::Generator::node_check(car_path* path, uint k, car_path* pro_path
                     }
                 }
             }
-            int* new_satrt_point = nullptr;
-            int* new_end_point = nullptr;
-            uint c = 0;
-            int* start_point_index = nullptr;
-            int* target_point_index = nullptr;
-            for (c; c < (path->first.middle_point.size() - 1); c++) {
-                if ((path->first.middle_point[c].first < GN_point->index || path->first.middle_point[c].first == GN_point->index)
-                    && GN_point->index < path->first.middle_point[c + 1].first) {
-                    new_satrt_point = &(*path).first.middle_point[c].second;
-                    new_end_point = &(*path).first.middle_point[c + 1].second;
-                    break;
-                }
-            }
-            start_point_index = &(path->first.middle_point[c].first);
-            target_point_index = &(path->first.middle_point[c + 1].first);
-            //删除老的路段
-            (*path).second.erase((*path).second.begin() + (*start_point_index), (*path).second.begin() + (*target_point_index));
-
-            pathList new_way = findPath((*GNs)[*new_satrt_point], (*GNs)[*new_end_point], GNs);
-            car_path temp_path(path->first, new_way);
-
-            //时间窗初始化
-            init_time_windows(path->second[(path->first.middle_point[c].first) - 1].end_time, path, GNs);
-
-            //插入新路径
-            (*path).second.insert(path->second.begin() + *start_point_index, temp_path.second.begin(), temp_path.second.end());
-
+           //重新规划
             is_return = true;
         }
     }
@@ -1046,41 +910,8 @@ void ASplanner::Generator::store_is_vechel(car_path* path, uint k, car_path* pro
             else if (GN_point->end_time > point_pro->end_time && GN_out->end_time < point_pro->start_time) {          //优先级高的车先进入断头路
                 //判断出站方向,
                 if (pro_out->path.target_index == GN_point->GN.index) {   //冲突
-                    for (auto it = (*GNs).begin(); it != (*GNs).end();it++) {
-                        if ((*it).index == GN_point->index) {
-                            for (auto tt = (*it).link_edges.begin(); tt != (*it).link_edges.end(); tt++) {
-                                if ((*tt).target_index==GN_point->path.target_index) {
-                                    (*tt).state = false;
-                                }
-                            }
-                        }
-                    }
-                    int* new_satrt_point=nullptr;
-                    int* new_end_point=nullptr;
-                    uint c = 0;
-                    int* start_point_index = nullptr;
-                    int* target_point_index = nullptr;
-                    for (c; c < (path->first.middle_point.size()-1);c++) {
-                        if ((path->first.middle_point[c].first< GN_point->index|| path->first.middle_point[c].first == GN_point->index)
-                            && GN_point->index < path->first.middle_point[c+1].first) {
-                            new_satrt_point = &(*path).first.middle_point[c].second;
-                            new_end_point = &(*path).first.middle_point[c+1].second;
-                            break;
-                        }
-                    }
-                    start_point_index = &(path->first.middle_point[c].first);
-                    target_point_index = &(path->first.middle_point[c + 1].first);
-                    //删除老的路段
-                    (*path).second.erase((*path).second.begin()+(*start_point_index), (*path).second.begin() + (*target_point_index));
-
-                    pathList new_way=findPath((*GNs)[*new_satrt_point],(*GNs)[*new_end_point],GNs);
-                    car_path temp_path(path->first,new_way);
-
-                    //时间窗初始化
-                    init_time_windows(path->second[(path->first.middle_point[c].first)-1].end_time, path, GNs);
+                    replanning_path(path, GN_point, GNs);
                     
-                    //插入新路径
-                    (*path).second.insert(path->second.begin()+*start_point_index,temp_path.second.begin(), temp_path.second.end());
                 }
 
                 else if (pro_out->path.target_index != GN_point->index) {//最简单的情况
@@ -1095,6 +926,80 @@ void ASplanner::Generator::store_is_vechel(car_path* path, uint k, car_path* pro
     }
 }
 
+void ASplanner::Generator::replanning_path(car_path* path,path_point* GN_point, vector<G_Node>* GNs) {
+    
+    for (auto it = (*GNs).begin(); it != (*GNs).end(); it++) {
+        if ((*it).index == GN_point->GN.index) {
+            for (auto tt = (*it).link_edges.begin(); tt != (*it).link_edges.end(); tt++) {
+                if ((*tt).target_index == GN_point->path.target_index) {
+                    (*tt).state = false;
+                }
+            }
+        }
+    }
+    int* new_satrt_point = nullptr;  //地图重新规划时所需要的起点与终点的索引号
+    int* new_end_point = nullptr;
+    uint c = 0;
+    int* start_point_index = nullptr;   //该段路在路径容器中索引号
+    int* target_point_index = nullptr;
+    for (c; c < (path->first.middle_point.size() - 1); c++) {
+        if ((path->first.middle_point[c].first < GN_point->index || path->first.middle_point[c].first == GN_point->index)
+            && GN_point->index < path->first.middle_point[c + 1].first) {
+            new_satrt_point = &(*path).first.middle_point[c].second;
+            new_end_point = &(*path).first.middle_point[c + 1].second;
+            break;
+        }
+    }
+
+    bool is_end_path = false;
+    if (c +1== (path->first.middle_point.size()-1)) {  //若为最后一段路
+        is_end_path = true;
+    }
+
+    start_point_index = &(path->first.middle_point[c].first);
+    target_point_index = &(path->first.middle_point[c + 1].first);
+
+    //删除老的路段
+    double start_time = path->second[*start_point_index].start_time;
+   (*path).second.erase((*path).second.begin() + (*start_point_index), (*path).second.begin() + (*target_point_index));
+
+    pathList new_way = findPath((*GNs)[*new_satrt_point], (*GNs)[*new_end_point], GNs);
+    car_path temp_path((*path).first, new_way);
+
+    //时间窗初始化
+
+    init_time_windows(start_time, &(temp_path), GNs);
+
+    if (is_end_path) {
+        (*path).second.insert(path->second.begin() + *start_point_index, temp_path.second.begin(), temp_path.second.end());
+    }
+    else {
+        double del_time =temp_path.second.back().end_time -(*path).second[*start_point_index].start_time;
+
+        (*path).second.insert(path->second.begin() + *start_point_index, temp_path.second.begin(), temp_path.second.end());
+
+        for (uint m =*start_point_index+temp_path.second.size() ; m < path->second.size(); m++) {
+            (*path).second[m].start_time += del_time;
+            (*path).second[m].end_time += del_time;
+        }
+    }
+    
+     uint i = *start_point_index;
+     //更新各个点的索引号
+     for (uint m = i; m < path->second.size();m++) {
+         if (m == path->second.size() - 1) { (*path).second[m].index = -1; }
+         else {
+             (*path).second[m].index = m;
+         }
+     }
+
+     //更新各段路的起始点信息
+     uint del_size = temp_path.second.size() - (*target_point_index - *start_point_index+1);
+     for (uint m = c; c < path->first.middle_point.size() - 1;c++) {
+         (*path).first.middle_point[c+1].first == (*path).first.middle_point[c].first + del_size;
+     }
+    
+}
 //ASplanner::pathList ASplanner::Generator::station_is_vechel(uint k,uint pro_size,path_point* point_pro, pair<Car_config,pathList>* path, vector<G_Node>* GNs)
 //{
 //    pathList new_way = {};
