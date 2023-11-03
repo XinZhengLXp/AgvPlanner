@@ -67,7 +67,7 @@ int  findpoint(const char* point)
 int main()
 {
     /*std::string inputFileName = "./test_example/car_config_4cars/car_config_04_01.xml";*/
-    std::string inputFileName = "./config/car_config_04.xml";
+    std::string inputFileName = "./config/car_config.xml";
     std::size_t found = inputFileName.find_last_of(".");
     std::string outputFileName = inputFileName.substr(0, found);
     char* p = &inputFileName[0];
@@ -266,13 +266,13 @@ int main()
             const XMLAttribute* middlepoint = middle_point->FindAttribute("name");
             //cout << point_index << endl;
 
-            uint target_p = findpoint(middlepoint->Value());               //目标点
-            generator.findPath(GNs[point_index], GNs[target_p], &GNs);
+            int target_p = findpoint(middlepoint->Value());               //目标点
+           single_path.second= generator.findPath(GNs[point_index], GNs[target_p], &GNs);
             //point_index为起点                 
             generator.init_time_windows(time_cnt, &single_path, &GNs);
 
-            uint single_size = single_path.second.size();
-            uint index = single_path.second[single_size - 2].path.target_index;
+            uint single_size = single_path.second.size();           //单段路的长度
+            uint index = single_path.second[single_size - 1].GN.index;  //最后一个点的索引号
 
             single_path.second[single_size - 1].GN.index = index;        //每段路的最后一个点初始化
             single_path.second[single_size - 1].path.source_index = index;
@@ -300,7 +300,7 @@ int main()
         }
     
          //最后一段路
-        single_path.second = generator.findPath(GNs[point_index], GNs[findpoint(end_point->Value())], &GNs); \
+        single_path.second = generator.findPath(GNs[point_index], GNs[findpoint(end_point->Value())], &GNs);
 
         pair<int, int>temp_pair(temp_path.second.size(), point_index);
         temp_path.first.middle_point.push_back(temp_pair);
@@ -337,10 +337,10 @@ int main()
         }
         else { ++it; }
     }
-    cout << GNLs.size() << endl;
+    /*cout << GNLs[0].second.size() << endl;*/
 
-    //for (auto it = GNLs.begin(); it != GNLs.end();) {//删除空元素
-    //    cout << (*it).first.index << endl;
+    //for (auto it = (*GNLs.begin()).first.middle_point.begin(); it != (*GNLs.begin()).first.middle_point.end();it++) {//删除空元素
+    //    cout << (*it).first << " " << (*it).second << endl;
     //}
 
     //cout << GNLs.size() << endl;
