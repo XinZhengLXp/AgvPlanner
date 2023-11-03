@@ -16,7 +16,7 @@
 
 using namespace std;
 namespace  ASplanner
-{  
+{
     struct Vec2i
     {
         double x, y;
@@ -63,12 +63,7 @@ namespace  ASplanner
         double end_time = 0;
         double spend_time = 0;
     };
-    using uint = unsigned int;
-    using HeuristicFunction = std::function<double(Vec2i, Vec2i)>;
-    using CoordinateList = std::vector<Vec2i>;
-    using G_NodeList = std::vector<G_Node>;
-    using pathList = std::vector<path_point>;
-    using car_path = std::pair<Car_config, pathList>;
+    
     struct Node    //使用A*算法中节点的各种需求，包括G、H、父节点、节点信息、
     {
         double G, H;
@@ -78,7 +73,12 @@ namespace  ASplanner
         Node(G_Node GN_, Node* parent_ = nullptr);//实例化产生空间
         double getScore();
     };                 
-
+    using uint = unsigned int;
+    using HeuristicFunction = std::function<double(Vec2i, Vec2i)>;
+    using CoordinateList = std::vector<Vec2i>;
+    using G_NodeList = std::vector<G_Node>;
+    using pathList = std::vector<path_point>;
+    using car_path = std::pair<Car_config, pathList>;
     using NodeSet = std::vector<Node*>;//存放节点地址的集合
 
     class Generator
@@ -103,7 +103,7 @@ namespace  ASplanner
             pathList station_is_vechel(uint k, uint pro_size, path_point* point_pro, pair<Car_config, pathList>* path, vector<G_Node>* GNs);
             bool mini_distance_between_vechels(car_path* path, uint k, car_path* pro_path, uint n, vector<G_Node>* GNs, vector<pair<Car_config, pathList>>* paths, uint i, uint j);
             bool node_check(car_path* path, uint k, car_path* pro_path, uint n, vector<G_Node>* GNs);
-            
+            void replanning_path(car_path* path, path_point* GN_point, vector<G_Node>* GNs);
             void store_is_vechel(car_path* path, uint k, car_path* pro_path, uint n, vector<G_Node>* GNs, vector<pair<Car_config, pathList>>* paths, uint i, uint j);
             //int time_window_dan(vector<pathList>* paths, int count, vector<G_Node>* GNs, vector<Gdge_property>* GEs);
             //int A_star_time_window(vector<pathList>* paths, G_Node source_, G_Node target_, vector<G_Node>* GNs, vector<Gdge_property>* GEs);
