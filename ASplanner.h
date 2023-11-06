@@ -104,7 +104,7 @@ namespace  ASplanner
             bool mini_distance_between_vechels(car_path* path, uint k, car_path* pro_path, uint n, vector<G_Node>* GNs, vector<pair<Car_config, pathList>>* paths, uint i, uint j);
             bool node_check(car_path* path, uint k, car_path* pro_path, uint n, vector<G_Node>* GNs);
             void replanning_path(car_path* path, path_point* GN_point, vector<G_Node>* GNs);
-            void store_is_vechel(car_path* path, uint k, car_path* pro_path, uint n, vector<G_Node>* GNs, vector<pair<Car_config, pathList>>* paths, uint i, uint j);
+            bool store_is_vechel(car_path* path, uint k, car_path* pro_path, uint n, vector<G_Node>* GNs, vector<pair<Car_config, pathList>>* paths, uint i, uint j);
             //int time_window_dan(vector<pathList>* paths, int count, vector<G_Node>* GNs, vector<Gdge_property>* GEs);
             //int A_star_time_window(vector<pathList>* paths, G_Node source_, G_Node target_, vector<G_Node>* GNs, vector<Gdge_property>* GEs);
             void addCollision(Vec2i coordinates_);
