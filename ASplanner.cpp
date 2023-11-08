@@ -81,7 +81,12 @@ void  ASplanner::Generator::clearCollisions()
 
 double ASplanner::Generator::conflict_check(vector<pair<Car_config,pathList>>* paths, vector<G_Node>* GNs)
 {
+    const uint car_count=paths->size();
     uint ff = 0;
+    /*uint sum = 1;
+    for (uint a = car_count; a > 0;a--) {
+        sum = sum * a;
+    }*/
     for (uint i = 0; i < (*paths).size(); i++) {    // i小车数量
         if ((*paths).size() ==3*(paths->size())) {
             cout << "优先级改变次数，次数过多" << endl;
@@ -136,9 +141,9 @@ double ASplanner::Generator::conflict_check(vector<pair<Car_config,pathList>>* p
                         }
 
                        // 节点冲突
-                        if ((*paths)[j].second.size() >2 ) {
+                        /*if ((*paths)[j].second.size() >2 ) {
                              node_conflict(&(*paths)[i],k,&(*paths)[j],n, GNs);
-                        }
+                        }*/
 
                         //同向冲突
                         if ((*paths)[j].first.index !=-1) {
@@ -172,7 +177,7 @@ double ASplanner::Generator::conflict_check(vector<pair<Car_config,pathList>>* p
             }//车i的k
         }//while循环
         std::cout<<(*paths)[i].first.index <<" 车" << "while循环次数 ：" << cycle_count << endl;
-        if (cycle_count == 10) { std::cout << "优先级变换次数过多，自动退出程序" << endl; exit(1); }
+        //if (cycle_count == 10) { std::cout << "优先级变换次数过多，自动退出程序" << endl; exit(1); }
         for (auto t = GNs->begin(); t != GNs->end(); t++)//恢复地图道路信息
         {
             for (auto edge : t->link_edges)
@@ -181,7 +186,7 @@ double ASplanner::Generator::conflict_check(vector<pair<Car_config,pathList>>* p
             }
         }
     }
-    cout << "车数：" << ff << endl;
+    cout << "优先级改变次数" << ff -car_count<< endl;
     return 0;
 }
 ASplanner::pathList  ASplanner::Generator::findPath(G_Node source_, G_Node target_, vector<G_Node>* GNs)
@@ -828,7 +833,7 @@ bool ASplanner::Generator::mini_distance_between_vechels(car_path* path, uint k,
             }
 
             else if (GN_point->start_time < point_pro->start_time ){ //比优先级高的车先进来。时空回溯
-                    //时空回溯
+                    //往前回溯
                 bool is_solve = false;
                 for (uint ii = 1; ii < (k+1) && ii < (n+1); ii++)//取最小值
                 {
@@ -870,19 +875,31 @@ bool ASplanner::Generator::node_check(car_path* path, uint k, car_path* pro_path
     auto point_pro = &(*pro_path).second[n];
     uint size = path->second.size();
     uint pro_size = pro_path->second.size();
-    if (n < (pro_size - 2) && k != 0) {
+    if (n < (pro_size - 2) && k > 0) {//保证n不为最后的点
         auto GN_pointg = &(*path).second[k - 1];
         auto pro_next = &(*pro_path).second[n + 1];
         uint size = path->second.size();
         uint pro_size = pro_path->second.size();
-        if (GN_point->GN.index == pro_next->path.target_index && GN_point->path.target_index == pro_next->GN.index
+        if (
+            GN_point->GN.index == pro_next->path.target_index && GN_point->path.target_index == pro_next->GN.index
             //&& GN_pointg->GN.index == point_pro->path.target_index && GN_pointg->GN.index == point_pro->GN.index
             && point_pro->end_time != pro_next->start_time  //前车在该节点有等待
             && GN_point->end_time > point_pro->end_time && GN_point->end_time < pro_next->start_time) { //在前车等待时间路过此节点
             
-            replanning_path(path, GN_point,GNs);
+           replanning_path(path, GN_point,GNs);
            //重新规划
             is_return = true;
+        }
+   else if (GN_point->GN.index != pro_next->path.target_index && GN_point->path.target_index == pro_next->GN.index
+            //&& GN_pointg->GN.index == point_pro->path.target_index && GN_pointg->GN.index == point_pro->GN.index
+            && point_pro->end_time != pro_next->start_time  //前车在该节点有等待
+            && GN_point->end_time > point_pro->end_time && GN_point->end_time < pro_next->start_time) {
+            double* wait_time = new double(pro_next->end_time - GN_point->start_time);
+            for (uint m = k; m < size; m++) {
+                (*path).second[m].start_time += *wait_time;
+                (*path).second[m].end_time += *wait_time;
+            }
+            delete wait_time;
         }
     }
     return is_return;
@@ -936,20 +953,20 @@ bool ASplanner::Generator::store_is_vechel(car_path* path, uint k, car_path* pro
 
             else if (GN_point->end_time > point_pro->end_time && GN_point->end_time < pro_out->start_time) {          //优先级高的车先进入断头路
                     //判断出站方向,
-                    if (pro_out->path.target_index == GN_point->GN.index) {   //冲突
-                        replanning_path(path, GN_point, GNs);
-                        is_return = true;
-                        cout << "断头路重新规划" << endl;
-                    }
+                if (pro_out->path.target_index == GN_point->GN.index) {   //冲突
+                    replanning_path(path, GN_point, GNs);
+                    is_return = true;
+                    cout << "断头路重新规划" << endl;
+                }
 
-                    else if (pro_out->path.target_index != GN_point->GN.index) {//最简单的情况
-                        double wait_time=pro_out->end_time+(*pro_length)/(pro_path->first.car_v)- (*path).second[k].start_time;
-                        for (uint m = k; m < size;m++) {
-                            (*path).second[m].start_time += wait_time;
-                            (*path).second[m].end_time += wait_time;
-                        }
-                        cout << "断头路执行等待" << endl;
+                else if (pro_out->path.target_index != GN_point->GN.index) {//最简单的情况
+                    double wait_time = pro_out->end_time + (*pro_length) / (pro_path->first.car_v) - (*path).second[k].start_time;
+                    for (uint m = k; m < size; m++) {
+                        (*path).second[m].start_time += wait_time;
+                        (*path).second[m].end_time += wait_time;
                     }
+                    cout << "断头路执行等待" << endl;
+                }
             }
         }
     }
@@ -1026,7 +1043,8 @@ void ASplanner::Generator::replanning_path(car_path* path,path_point* GN_point, 
      //更新各段路的起始点信息
      uint del_size = temp_path.second.size() - (*target_point_index - *start_point_index+1);
      for (uint m = c; c < path->first.middle_point.size() - 1;c++) {
-         (*path).first.middle_point[c+1].first = (*path).first.middle_point[c].first + del_size;
+         (*path).first.middle_point[c+1].first += del_size;
+         (*path).first.middle_point[c].first += del_size;
      }
     
 }
