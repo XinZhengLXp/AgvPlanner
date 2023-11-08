@@ -141,9 +141,9 @@ double ASplanner::Generator::conflict_check(vector<pair<Car_config,pathList>>* p
                         }
 
                        // 节点冲突
-                        /*if ((*paths)[j].second.size() >2 ) {
+                        if ((*paths)[j].second.size() >2 ) {
                              node_conflict(&(*paths)[i],k,&(*paths)[j],n, GNs);
-                        }*/
+                        }
 
                         //同向冲突
                         if ((*paths)[j].first.index !=-1) {
@@ -696,13 +696,16 @@ void ASplanner::Generator::node_conflict(car_path* path,uint k ,car_path* pro_pa
     if (pro_path->first.type == 0) { pro_length = &agv_length; }//AGV车长/速度
     else { pro_length = &fork_length; }//叉车车长/速度
 
-    if (GN_point->GN.index != point_pro->path.source_index // 两条路起点不一样
-        && (*path).second[k].path.target_index == point_pro->path.target_index //目标点相同
+    if (GN_point->GN.index != point_pro->GN.index // 两条路起点不一样
+        && GN_point->path.target_index == point_pro->path.target_index //目标点相同
         && GN_point->path.collsion_id != point_pro->path.collsion_id&& (n<pro_size-2)
         &&k>0&&(*pro_path).second[n+1].path.target_index != GN_point->GN.index) {
         auto pro_next = &(*pro_path).second[n + 1];
-        if ((GN_point->start_time < point_pro->start_time && GN_point->end_time > point_pro->end_time)
-            || (point_pro->start_time < GN_point->start_time && point_pro->end_time > GN_point->start_time)) {
+        if ((GN_point->start_time < point_pro->start_time && GN_point->end_time > point_pro->start_time)
+            || (point_pro->start_time < GN_point->start_time && point_pro->end_time > GN_point->start_time )
+            ||(point_pro->end_time == GN_point->end_time)  //结束时间相同
+            ||(GN_point->start_time < point_pro->start_time && GN_point->end_time > point_pro->end_time)
+            ||(GN_point->start_time > point_pro->start_time && GN_point->end_time < point_pro->start_time)) {
             auto pro_next = &(*pro_path).second[n + 1];
             double wait_time = pro_next->end_time - GN_point->start_time+(*pro_length/pro_path->first.car_v);
             for (uint m = k; m < (*path).second.size(); m++) {
@@ -880,26 +883,24 @@ bool ASplanner::Generator::node_check(car_path* path, uint k, car_path* pro_path
         auto pro_next = &(*pro_path).second[n + 1];
         uint size = path->second.size();
         uint pro_size = pro_path->second.size();
-        if (
-            GN_point->GN.index == pro_next->path.target_index && GN_point->path.target_index == pro_next->GN.index
-            //&& GN_pointg->GN.index == point_pro->path.target_index && GN_pointg->GN.index == point_pro->GN.index
+        if (GN_point->path.target_index == point_pro->path.target_index && GN_point->GN.index != point_pro->GN.index
             && point_pro->end_time != pro_next->start_time  //前车在该节点有等待
-            && GN_point->end_time > point_pro->end_time && GN_point->end_time < pro_next->start_time) { //在前车等待时间路过此节点
-            
-           replanning_path(path, GN_point,GNs);
-           //重新规划
-            is_return = true;
-        }
-   else if (GN_point->GN.index != pro_next->path.target_index && GN_point->path.target_index == pro_next->GN.index
-            //&& GN_pointg->GN.index == point_pro->path.target_index && GN_pointg->GN.index == point_pro->GN.index
-            && point_pro->end_time != pro_next->start_time  //前车在该节点有等待
-            && GN_point->end_time > point_pro->end_time && GN_point->end_time < pro_next->start_time) {
-            double* wait_time = new double(pro_next->end_time - GN_point->start_time);
-            for (uint m = k; m < size; m++) {
-                (*path).second[m].start_time += *wait_time;
-                (*path).second[m].end_time += *wait_time;
+            && GN_point->end_time > point_pro->end_time && GN_point->end_time < pro_next->start_time){//在前车等待时间路过该节点
+            if (pro_next->path.target_index==GN_point->GN.index) {
+                replanning_path(path, GN_point, GNs);
+                //重新规划
+                is_return = true;
             }
-            delete wait_time;
+
+       else if(pro_next->path.target_index != GN_point->GN.index
+                &&GN_pointg->path.target_index != point_pro->GN.index){
+                double* wait_time = new double(pro_next->end_time - GN_point->start_time);
+                for (uint m = k; m < size; m++) {
+                    (*path).second[m].start_time += *wait_time;
+                    (*path).second[m].end_time += *wait_time;
+                }
+                delete wait_time;
+            }
         }
     }
     return is_return;
