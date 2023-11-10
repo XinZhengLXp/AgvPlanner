@@ -16,7 +16,7 @@
 
 using namespace std;
 namespace  ASplanner
-{
+{   
     struct Vec2i
     {
         double x, y;
@@ -86,7 +86,7 @@ namespace  ASplanner
         bool detectCollision(Vec2i coordinates_);
         Node* findNodeOnList(NodeSet& nodes_, uint index);
         void releaseNodes(NodeSet& nodes_);
-
+        void delay_func(pathList* path, uint k, uint size,double* wait_time);
         public:
 
             Generator();
