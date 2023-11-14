@@ -1,8 +1,9 @@
 #include "ASplanner.h"
 #include <algorithm>
 #include <math.h>
+#include "tinyxml2.h"
 #include <iostream>
-
+using namespace tinyxml2;
 using namespace std;
 using namespace std::placeholders;
 const double mini_distance = 1.0;
@@ -119,7 +120,7 @@ double ASplanner::Generator::conflict_check(vector<pair<Car_config,pathList>>* p
                         }
                         ////相向冲突
                         if ((*paths)[i].second.size() > 2 && (*paths)[j].first.index != -1) {
-                            bool is_conflict = opposing_conflict(&(*paths)[i], k, &(*paths)[j], n, GNs);
+                            bool is_conflict = opposing_conflict(&(*paths)[i], k, &(*paths)[j], n, GNs, paths, i, j);
                             if (is_conflict) {
                                 flag = true;
                                 break;
@@ -241,7 +242,7 @@ ASplanner::pathList  ASplanner::Generator::findPath(G_Node source_, G_Node targe
             }
         }
     }
-    G_NodeList path;
+    G_NodeList path;   //G_Node
     pathList time_path;
     while (current != nullptr) {//链表轮询
         path.push_back(current->GN);
@@ -261,6 +262,7 @@ ASplanner::pathList  ASplanner::Generator::findPath(G_Node source_, G_Node targe
                 {
                     temp_t.path = edge;//找到目标路径
                 }
+                /*else { cout << "A*路径不匹配" << endl; }*/
             }
         }
         time_path.push_back(temp_t);    //将路径的的各个站点压入time_path栈中
@@ -335,7 +337,7 @@ double  ASplanner::Heuristic::octagonal(Vec2i source_, Vec2i target_)
     return 10 * (delta.x + delta.y) + (-6) * std::min(delta.x, delta.y);
 }
 //相向冲突
-bool ASplanner::Generator::opposing_conflict(car_path* path, uint k, car_path* pro_path, uint n, vector<G_Node>* GNs)
+bool ASplanner::Generator::opposing_conflict(car_path* path, uint k, car_path* pro_path, uint n, vector<G_Node>* GNs, vector<pair<Car_config, pathList>>* paths, uint i, uint j)
 {
     bool is_return=false;
     pathList new_way = {};
@@ -355,70 +357,120 @@ bool ASplanner::Generator::opposing_conflict(car_path* path, uint k, car_path* p
             || ((GN_point->start_time < point_pro->start_time)&& (GN_point->end_time > point_pro->end_time))
             || ((GN_point->start_time > point_pro->start_time) && (GN_point->end_time < point_pro->end_time))) {
             bool is_solve = false;
-            if (k > 0 && pro_size > 2 && point_pro->index < (pro_size - 2)
-                && path->second[k - 1].GN.index != pro_path->second[n + 1].path.target_index) { //往后退一段试探可否躲避
-                double* wait_time = new double(pro_path->second[n + 1].end_time + (pro_length / pro_path->first.car_v) - (path->second[k - 1].start_time));
-                
-                delay_func(&(*path).second,k-1,size,wait_time);
-                delete wait_time;
-                //向相冲突，后退一节等待
-                cout << "相向冲突,后退一步" << endl;
-                is_return = true;
-                is_solve = true;
-            }
-       else if (k > 1 && pro_size > 3 && point_pro->index < (pro_size - 3)
-                && path->second[k - 1].GN.index == pro_path->second[n + 1].path.target_index
-                && path->second[k - 2].GN.index != pro_path->second[n + 2].path.target_index) {//回退两段路试试能不能通过等待躲过
-                
-                double* wait_time =new double( pro_path->second[n + 2].end_time + (pro_length / pro_path->first.car_v) - (path->second[k - 2].start_time));
-                delay_func(&(*path).second, k - 2, size,wait_time);
-                delete wait_time;
-                cout <<"相向冲突,后退两步" << endl;
-                is_return = true;
-                is_solve = true;
-            }
-       else if (k > 2 && pro_size > 4 && point_pro->index < (pro_size - 4)
-                && path->second[k - 3].GN.index != pro_path->second[n + 3].path.target_index) {
-                
-                double* wait_time = new double(pro_path->second[n + 3].end_time + (pro_length / pro_path->first.car_v) - (path->second[k - 3].start_time));
-                
-                delay_func(&(*path).second,k-3,size,wait_time);
-                delete wait_time;
-                cout << "相向冲突,后退三步" << endl;
-                is_return = true;
-                is_solve = true;
-            }
-            else {      //需要重新规划  绕路
-                uint end_index = ((*path).second[size - 1].GN.index);  //最后一个元素索引号地址
-                uint start_index = ((*path).second[0].GN.index);
-
-                if (((path->first.car_v > pro_path->first.car_v) || (path->first.car_v == pro_path->first.car_v)) && k > 0){
-                    
-                    auto GN_pointg = &(*path).second[0];
-                    if (k != 0) { GN_pointg = &(*path).second[k-1]; }
-                    replanning_path(path,GN_pointg,GNs);
-                    
-                    std::cout << "相向冲突规划完成" << endl;
-                    is_return = true;
+            for (uint m = k - 1; m > 0; m--) {
+                if (is_solve) { break; }
+                auto GN_pointg = (*path).second[m];
+                if (n + k - m < pro_size - 2 && GN_pointg.GN.index != pro_path->second[n + k - m].path.target_index)//优先级高的车此段路与本车无冲突冲突
+                {
+                    double* wait_time = new double(pro_path->second[n + k - m].end_time + (pro_length / pro_path->first.car_v) - (path->second[m].start_time));
+                    delay_func(&(*path).second, m, size, wait_time);
+                    delete wait_time;
                     is_solve = true;
-                }
-
-                else if ((path->first.car_v < pro_path->first.car_v)) {
-
-                    auto GN_pointg = &(*path).second[0];
-                    if (k > 1) { GN_pointg = &(*path).second[k - 2]; }
-
-                    replanning_path(path, GN_pointg, GNs);
-
-                    std::cout << "相向冲突规划完成" << endl;
                     is_return = true;
-                    is_solve = true;
                 }
+                else if (n + k - m < pro_size - 2 && GN_pointg.GN.index == pro_path->second[n + k - m].path.target_index) {  //优先级高的车此段路还有本车有冲突
+                    for (auto it = GN_pointg.GN.link_edges.begin(); it != GN_pointg.GN.link_edges.end(); it++) {//遍历k-1段路的连接关系
+                        if (is_solve) { break; }
+                        if (m > 0 && (*it).target_index != (*path).second[m - 1].GN.index   //不为上一段路
+                            && (*it).target_index != (*path).second[m].path.target_index) { //不为下一段路（出度大于2）
+                            //遍历GN_pointg的target这个点的连接关系
+                            for (auto tt = (*GNs)[(*it).target_index].link_edges.begin(); tt != (*GNs)[(*it).target_index].link_edges.end(); tt++) {
+                                if ((*tt).target_index == (*path).second[m + 1].path.target_index) {
+
+                                    path_point path_point1 = { 0,GN_pointg.GN,*it,GN_pointg.start_time,0,0 };
+                                    path_point1.spend_time = path_point1.path.leng / path->first.car_v;
+                                    path_point1.end_time = path_point1.start_time + path_point1.spend_time;
+
+                                    if (path_point1.end_time < pro_path->second[n + k - m].start_time) {
+                                        (*path).second.erase((*path).second.begin() + m, (*path).second.begin() + m + 1);
+                                        (*path).second.insert((*path).second.begin() + m, path_point1);
+                                        path_point path_point2 = { 0,(*GNs)[(*tt).source_index],*tt, pro_path->second[n + k - m].end_time,0,0 };
+                                        path_point2.spend_time = path_point2.path.leng / path->first.car_v;
+                                        path_point2.end_time = path_point2.spend_time + path_point2.start_time;
+                                        (*path).second.insert((*path).second.begin() + m + 1, path_point2);
+
+                                        uint ii = 0;
+                                        for (auto p = path->second.begin(); p != path->second.end(); p++) {
+                                            (*p).index = ii;
+                                            ii++;
+                                        }
+                                        double wait_time = path_point2.end_time - (*path).second[m + 2].start_time;
+                                        delay_func(&(*path).second, m + 2, size, &wait_time);
+                                        is_solve = true;
+                                        is_return = true;
+                                        break;
+                                    }
+                                }
+
+                                else if ((*tt).target_index == GN_pointg.path.target_index) {
+                                    path_point path_point1 = { 0,GN_pointg.GN,*it,GN_pointg.start_time,0,0 };
+                                    path_point1.spend_time = path_point1.path.leng / path->first.car_v;
+                                    path_point1.end_time = path_point1.start_time + path_point1.spend_time;
+
+                                    if (path_point1.end_time < pro_path->second[n + k - m].start_time) {
+                                        (*path).second.erase((*path).second.begin() + m);
+                                        (*path).second.insert((*path).second.begin() + m, path_point1);
+                                        
+                                        path_point path_point2 = { 0,(*GNs)[(*tt).source_index],*tt, pro_path->second[n + k - m].end_time,0,0};
+                                        path_point2.spend_time = path_point2.path.leng / path->first.car_v;
+                                        path_point2.end_time = path_point2.spend_time + path_point2.start_time;
+                                        (*path).second.insert((*path).second.begin() + m + 1, path_point2);
+
+                                        uint ii = 0;
+                                        for (auto p = path->second.begin(); p != path->second.end(); p++) {
+                                            (*p).index = ii;
+                                            ii++;
+                                        }
+                                        double wait_time = path_point2.end_time - (*path).second[m + 2].start_time;
+                                        delay_func(&(*path).second, m + 2, size, &wait_time);
+                                        is_solve = true;
+                                        is_return = true;
+                                        break;
+                                    }
+                                    else if ((*tt).target_index == GN_pointg.GN.index) {
+                                        path_point path_point1 = { 0,GN_pointg.GN,*it,GN_pointg.start_time,0,0 };
+                                        path_point1.spend_time = path_point1.path.leng / path->first.car_v;
+                                        path_point1.end_time = path_point1.start_time + path_point1.spend_time;
+
+                                        if (path_point1.end_time < pro_path->second[n + k - m].start_time) {
+                                            
+                                            (*path).second.insert((*path).second.begin() + m, path_point1);
+                                            path_point path_point2 = { 0,(*GNs)[(*tt).source_index],*tt, pro_path->second[n + k - m].end_time,0,0 };
+                                            path_point2.spend_time = path_point2.path.leng / path->first.car_v;
+                                            path_point2.end_time = path_point2.spend_time + path_point2.start_time;
+                                            (*path).second.insert((*path).second.begin() + m + 1, path_point2);
+
+                                            uint ii = 0;
+                                            for (auto p = path->second.begin(); p != path->second.end(); p++) {
+                                                (*p).index = ii;
+                                                ii++;
+                                            }
+                                            double wait_time = path_point2.end_time - (*path).second[m + 2].start_time;
+                                            delay_func(&(*path).second, m + 2, size, &wait_time);
+                                            is_solve = true;
+                                            is_return = true;
+                                            break;
+                                        }
+                                    }
+                                }//折返型避障
+
+                            }
+                        }
+                    }
+
+                }//不为岔路
             }
-            if (!is_solve) {
-                cout << "未解决相向冲突" << endl;
-                (*path).second.clear();
-                exit(1);
+            if (!is_solve) {     //改变优先级
+                pair<Car_config, pathList> temp = (*paths)[j];
+                if (i == ((*paths).size() - 1)) {
+                    (*paths).push_back(temp);
+                }
+                else { (*paths).insert((*paths).begin() + i + 1, temp); }
+                (*paths)[j].first.index = -1;
+
+                (*paths)[j].second.clear();
+                (*paths)[j].second.shrink_to_fit();
+                cout << "冲突集问题，调整优先级！" << endl;
             }
         }
     }
@@ -916,6 +968,7 @@ bool ASplanner::Generator::node_check(car_path* path, uint k, car_path* pro_path
                 delete wait_time;
             }
         }
+
     }
     return is_return;
 }
@@ -1066,6 +1119,138 @@ void ASplanner::Generator::replanning_path(car_path* path,path_point* GN_point, 
          (*path).first.middle_point[c].first += del_size;
      }
     
+}
+string ASplanner::Generator::task_scheduling(vector<pair<Car_config, pathList>> GNLs,string Filename, vector<G_Node>* GNs) {
+    const char* p = &Filename[0];
+    XMLDocument doc_agv;
+    tinyxml2::XMLError if_success = doc_agv.LoadFile(p);
+    if (if_success != 0) {
+        std::cout << "open file failed" << endl;
+        ; exit(1);
+    }
+    doc_agv.Error();
+    uint count = 0;
+    XMLElement* agv_titleElement = doc_agv.FirstChildElement();
+    XMLElement* agv = agv_titleElement->FirstChildElement("agv");
+    vector<pair<Car_config, pathList>> task_vechal;
+    while (agv) {
+        car_path temp_car;
+        const XMLAttribute* start_point = agv->FindAttribute("start_point");
+        const XMLAttribute* end_point = agv->FindAttribute("end_point");
+        const XMLAttribute* type = agv->FindAttribute("type");
+        const XMLAttribute* car_v = agv->FindAttribute("car_v");
+        const XMLAttribute* car_name = agv->FindAttribute("name");
+        Car_config temp = { std::atoi(type->Value()) ,GNLs.size()+ count,car_name->Value(),{},std::stod(car_v->Value())};
+        temp_car.first = temp;
+        uint start = findpoint(start_point->Value(), GNs);
+        uint end = findpoint(end_point->Value(), GNs);
+        temp_car.second = findPath((*GNs)[start], (*GNs)[end], GNs);
+        init_time_windows(0.0, &temp_car, GNs);
+        task_vechal.push_back(temp_car);
+        temp_car.second.clear();
+        count++;
+    }
+    
+    uint select = 0;
+    cout << "select Shortest path please enter '1'" << endl;
+    cout << "select Shortest time please enter '0'" << endl;
+    cout << "select=";
+    cin >> select;
+    if (select == 1) {
+        std::sort(task_vechal.begin(), task_vechal.end(), [](const pair<Car_config, pathList>&a, const pair<Car_config, pathList>&b) {
+            double a_add = 0.0;
+            for (uint i = 0; i < a.second.size(); i++) {
+                a_add += a.second[i].spend_time;
+            }
+            double b_add = 0.0;
+            for (uint i = 0; i < b.second.size(); i++) {
+                b_add += b.second[i].spend_time;
+            }
+            return a_add < b_add;
+            // 根据value成员变量升序排序
+        });
+        return GNLs[0].first.car_name;
+    }
+
+    else {
+        for (uint i = 0; i < task_vechal.size(); i++) {
+            GNLs.push_back(task_vechal[i]);
+            conflict_check(&GNLs, GNs);
+            task_vechal[i] = *GNLs.end();
+            GNLs.pop_back();
+        }
+        std::sort(task_vechal.begin(), task_vechal.end(), [](const pair<Car_config, pathList>& a, const pair<Car_config, pathList>& b) {
+            double a_add = 0.0;
+            for (uint i = 0; i < a.second.size(); i++) {
+                a_add += a.second[i].path.leng;
+            }
+            double b_add = 0.0;
+            for (uint i = 0; i < b.second.size(); i++) {
+                b_add += b.second[i].path.leng;
+            }
+            return a_add < b_add;
+            });
+        return GNLs[0].first.car_name;
+    }
+    GNLs.clear();
+    GNLs.shrink_to_fit();
+}
+int  ASplanner::Generator::findpoint(const char* point, vector<G_Node>* GNs)
+{
+    char str[20] = { 0 };
+    const char* ptr = point;
+    int x = 0;
+    while (*ptr != '\0') {
+        char currentChar = *ptr; // 使用解引用操作符获取当前字符
+        str[x] = currentChar;
+        ptr++; // 指针指向下一个字符
+        x++;
+    }
+    vector<string> s;
+    char* next_token;
+    char* token = strtok_s(str, "-", &next_token);
+    while (token != NULL) {
+        char str[20] = { 0 };
+        const char* ptr = token;
+        int x = 0;
+        while (*ptr != '\0') {
+            char currentChar = *ptr; // 使用解引用操作符获取当前字符
+            str[x] = currentChar;
+            ptr++; // 指针指向下一个字符
+            x++;
+        }
+        s.push_back(str);
+        token = strtok_s(NULL, "-", &next_token);
+    }
+    //cout<<"起始/目标点" << s[0] << "-" << s[1] << "-" << s[2] << endl;
+    vector<G_Node>::iterator it;
+    int i = 0;
+    for (it = GNs->begin(); it != GNs->end(); it++)
+    {
+        if (it->name.main_id == atoi(s[0].c_str()) && it->name.sec_id == atoi(s[1].c_str()) && it->name.last_id == atoi(s[2].c_str()))
+        {
+            i = it->index;
+            break;
+        }
+    }
+    if (it == GNs->end()) {
+        cout << "cant find the point:" << point << "system out" << endl;
+        exit(1);
+    }
+    return i;
+}
+
+bool ASplanner::Generator::comparetime(const pair<Car_config, pathList>& a, const pair<Car_config, pathList>& b) {
+    double a_add=0.0;
+    for (uint i = 0; i < a.second.size(); i++) {
+        a_add += a.second[i].spend_time;
+    }
+    double b_add=0.0;
+    for (uint i = 0; i < b.second.size(); i++) {
+        b_add += b.second[i].spend_time;
+    }
+    return a_add < b_add;
+    // 根据value成员变量升序排序
 }
 //ASplanner::pathList ASplanner::Generator::station_is_vechel(uint k,uint pro_size,path_point* point_pro, pair<Car_config,pathList>* path, vector<G_Node>* GNs)
 //{
