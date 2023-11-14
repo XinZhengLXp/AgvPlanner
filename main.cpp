@@ -62,19 +62,23 @@ int  findpoint(const char* point)
             break;
         }
     }
+    if (it==GNs.end()) {
+        cout << "cant find the point:"<<point <<"system out" << endl;
+        exit(1);
+    }
     return i;
 }
 
 int main(/*int argc,char* argv[]*/)
 {
-   /* if (argc < 2) {
+    /*if (argc < 2) {
         std::cout << "请提供参数！" << std::endl;
         return 1;
     }*/
     /*while (true) {*/
         /*std::string inputFileName = "./test_example/car_config_4cars/car_config_04_01.xml";*/
-
-        std::string inputFileName = "./config/car_config_04_01.xml";
+        //string inputFileName =argv[1];
+        std::string inputFileName = "./config/car_config_02_02.xml";
         std::size_t found = inputFileName.find_last_of(".");
         std::string outputFileName = inputFileName.substr(0, found);
         char* p = &inputFileName[0];
@@ -85,7 +89,7 @@ int main(/*int argc,char* argv[]*/)
              std::cout << "open file failed" << endl;
              ; exit(1);
          }
-
+         cout <<"open file success" << endl;
         doc_agv.Error();
         //读取车辆属性
         ofstream fout;
@@ -96,6 +100,7 @@ int main(/*int argc,char* argv[]*/)
         XMLElement* agv_titleElement = doc_agv.FirstChildElement();
         XMLElement* agv = agv_titleElement->FirstChildElement("agv");
         GEs.reserve(620);
+        
         ifstream ifse;
         ifse.open("./file/segment.txt", ios::in);
         char buf[1024];
@@ -161,7 +166,6 @@ int main(/*int argc,char* argv[]*/)
                 s.clear();
             }
         }
-
         ifsc.close();
 
         ifse.close();
@@ -206,9 +210,9 @@ int main(/*int argc,char* argv[]*/)
             }
             GNs.push_back(temp_GN);
         }
+        GEs.clear();
+        GEs.shrink_to_fit();
         ifst.close();
-
-
 
         ASplanner::Generator generator;
         //generator.setWorldSize({ 25, 25 });//设置地图大小,没有太大意义，可将此行注释掉
@@ -264,12 +268,14 @@ int main(/*int argc,char* argv[]*/)
             const XMLAttribute* end_point = agv->FindAttribute("end_point");
             const XMLAttribute* type = agv->FindAttribute("type");
             const XMLAttribute* car_v = agv->FindAttribute("car_v");
+            const XMLAttribute* car_name = agv->FindAttribute("name");
             XMLElement* middle_point = agv->FirstChildElement("middle_point");
             //car.target_index =findpoint(target_point->Value());
             car.type = std::atoi(type->Value());
             car.car_v = std::stod(car_v->Value());
+            car.car_name = car_name->Value();
             car.index = count;
-
+            
             temp_path.first = car;
             // cout << "终点索引" << findpoint(end_point->Value()) << endl;
              //{    int index_forward;
@@ -372,10 +378,15 @@ int main(/*int argc,char* argv[]*/)
             agv = agv->NextSiblingElement("agv");
             count++;
         }
-
-
+        /*string file_name="./config/car_config.xml";
+        
+        string good_car=generator.task_scheduling(GNLs,file_name,&GNs);
+        cout << "选择" << good_car << endl;*/
         //冲突检测
+        //std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        
         generator.conflict_check(&GNLs, &GNs);
+        //std::this_thread::sleep_for(std::chrono::milliseconds(100));
         cout << GNLs.size() << endl;
         for (auto it = GNLs.begin(); it != GNLs.end();) {//删除空元素
             if (it->first.index == -1) {

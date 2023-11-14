@@ -40,6 +40,7 @@ namespace  ASplanner
     {
         unsigned int type=0;
         int index=0;
+        string car_name;
         //unsigned int target_index;
         vector<pair<int, int>> middle_point;
         double car_v;
@@ -94,19 +95,23 @@ namespace  ASplanner
             void setDiagonalMovement(bool enable_);
             void setHeuristic(HeuristicFunction heuristic_);
             pathList findPath(G_Node source_, G_Node target_, vector<G_Node> *GNs);
-            bool opposing_conflict(car_path* path,uint k ,car_path* pro_path,uint n, vector<G_Node>* GNs);
+            bool opposing_conflict(car_path* path, uint k, car_path* pro_path, uint n, vector<G_Node>* GNs, vector<pair<Car_config, pathList>>* paths, uint i, uint j);
             void init_time_windows(double time_cnt,pair<Car_config, pathList> *path,vector<G_Node>*  GNs);
             bool collsion_collection(car_path* path,uint k,car_path* pro_path,uint n, vector<G_Node>* GNs, vector<pair<Car_config, pathList>>* paths, uint i, uint j);
             double conflict_check(vector<pair<Car_config, pathList>>* GNLs, vector<G_Node>* GNs);
             bool colliding_conflict(car_path* path, uint k, car_path* pro_path, uint n, vector<G_Node>* GNs,vector<pair<Car_config, pathList>>* paths, uint i, uint j);
             void node_conflict(car_path* path,uint k, car_path* pro_path,uint n, vector<G_Node>* GNs);
-            pathList station_is_vechel(uint k, uint pro_size, path_point* point_pro, pair<Car_config, pathList>* path, vector<G_Node>* GNs);
+            //pathList station_is_vechel(uint k, uint pro_size, path_point* point_pro, pair<Car_config, pathList>* path, vector<G_Node>* GNs);
             bool mini_distance_between_vechels(car_path* path, uint k, car_path* pro_path, uint n, vector<G_Node>* GNs, vector<pair<Car_config, pathList>>* paths, uint i, uint j);
             bool node_check(car_path* path, uint k, car_path* pro_path, uint n, vector<G_Node>* GNs);
             void replanning_path(car_path* path, path_point* GN_point, vector<G_Node>* GNs);
+            int findpoint(const char* point, vector<G_Node>* GNs);
+            string task_scheduling(vector<pair<Car_config, pathList>> GNLs, string Filename, vector<G_Node>* GNs);
             bool store_is_vechel(car_path* path, uint k, car_path* pro_path, uint n, vector<G_Node>* GNs, vector<pair<Car_config, pathList>>* paths, uint i, uint j);
             //int time_window_dan(vector<pathList>* paths, int count, vector<G_Node>* GNs, vector<Gdge_property>* GEs);
             //int A_star_time_window(vector<pathList>* paths, G_Node source_, G_Node target_, vector<G_Node>* GNs, vector<Gdge_property>* GEs);
+            bool comparelength(const pair<Car_config, pathList>& a, const pair<Car_config, pathList>& b);
+            bool comparetime(const pair<Car_config, pathList>& a, const pair<Car_config, pathList>& b);
             void addCollision(Vec2i coordinates_);
             void removeCollision(Vec2i coordinates_);
             void clearCollisions();
