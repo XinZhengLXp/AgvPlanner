@@ -849,10 +849,10 @@ bool ASplanner::Generator::node_check(car_path* path, uint k, car_path* pro_path
             delay_func(&(*path).second, k, size, wait_time);
             delete wait_time;
         }
+
    else if (GN_point->path.target_index == point_pro->path.target_index && GN_point->GN.index != point_pro->GN.index
-       && GN_point->end_time != (*path).second[k+1].start_time  //在该节点有等待
-       &&point_pro->end_time >GN_point->end_time&&pro_next->start_time < (*path).second[k + 1].start_time) {
-        
+       &&k<size-1 &&GN_point->end_time != (*path).second[k+1].start_time  //在该节点有等待
+       && point_pro->end_time > GN_point->end_time &&pro_next->start_time < (*path).second[k + 1].start_time) {
             double* wait_time = new double(pro_next->end_time - GN_point->start_time);
             delay_func(&(*path).second, k, size, wait_time);
             delete wait_time;
@@ -1008,6 +1008,15 @@ void ASplanner::Generator::replanning_path(car_path* path,path_point* GN_point, 
          (*path).first.middle_point[c].first += del_size;
      }
     
+}
+
+void ASplanner::Generator::dont_in(car_path* path, path_point* GN_point, vector<G_Node>* GNs) {
+
+
+
+
+
+
 }
 //任务调度
 string ASplanner::Generator::task_scheduling(vector<pair<Car_config, pathList>> GNLs,string Filename, vector<G_Node>* GNs) {
