@@ -106,12 +106,14 @@ namespace  ASplanner
             bool node_check(car_path* path, uint k, car_path* pro_path, uint n, vector<G_Node>* GNs);
             void replanning_path(car_path* path, path_point* GN_point, vector<G_Node>* GNs);
             int findpoint(const char* point, vector<G_Node>* GNs);
+            bool backtrack(car_path* path, uint k, car_path* pro_path, uint n, vector<G_Node>* GNs,double pro_length);
             string task_scheduling(vector<pair<Car_config, pathList>> GNLs, string Filename, vector<G_Node>* GNs);
             bool store_is_vechel(car_path* path, uint k, car_path* pro_path, uint n, vector<G_Node>* GNs, vector<pair<Car_config, pathList>>* paths, uint i, uint j);
             //int time_window_dan(vector<pathList>* paths, int count, vector<G_Node>* GNs, vector<Gdge_property>* GEs);
             //int A_star_time_window(vector<pathList>* paths, G_Node source_, G_Node target_, vector<G_Node>* GNs, vector<Gdge_property>* GEs);
             bool comparelength(const pair<Car_config, pathList>& a, const pair<Car_config, pathList>& b);
             bool comparetime(const pair<Car_config, pathList>& a, const pair<Car_config, pathList>& b);
+            void dont_in(car_path* path, path_point* GN_point, vector<G_Node>* GNs);
             void addCollision(Vec2i coordinates_);
             void removeCollision(Vec2i coordinates_);
             void clearCollisions();
