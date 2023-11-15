@@ -359,124 +359,7 @@ bool ASplanner::Generator::opposing_conflict(car_path* path, uint k, car_path* p
             || ((GN_point->start_time >= point_pro->start_time) && (GN_point->end_time <= point_pro->end_time))) {
             bool is_solve = false;
             is_solve = backtrack(path,k, pro_path,n, GNs, pro_length);
-            //for (uint m = k - 1; m > 0; m--) {
-            //    if (is_solve) { break; }
-            //    auto GN_pointg = (*path).second[m];
-            //    if (n + k - m < pro_size - 2 && GN_pointg.GN.index != pro_path->second[n + k - m].path.target_index)//优先级高的车此段路与本车无冲突冲突
-            //    {
-            //        double* wait_time = new double(pro_path->second[n + k - m].end_time + (pro_length / pro_path->first.car_v) - (path->second[m].start_time));
-            //        delay_func(&(*path).second, m, size, wait_time);
-            //        delete wait_time;
-            //        is_solve = true;
-            //        is_return = true;
-            //    }
-            //    else if (n + k - m < pro_size - 2 && GN_pointg.GN.index == pro_path->second[n + k - m].path.target_index) {  //优先级高的车此段路还有本车有冲突
-            //        for (auto it = GN_pointg.GN.link_edges.begin(); it != GN_pointg.GN.link_edges.end(); it++) {//遍历k-1段路的连接关系
-            //            if (is_solve) { break; }
-            //            if (m > 0 && (*it).target_index != (*path).second[m - 1].GN.index   //不为上一段路
-            //                && (*it).target_index != (*path).second[m].path.target_index) { //不为下一段路（出度大于2）
-            //                //遍历GN_pointg的target这个点的连接关系
-            //                for (auto tt = (*GNs)[(*it).target_index].link_edges.begin(); tt != (*GNs)[(*it).target_index].link_edges.end(); tt++) {
-            //                    uint c=0;
-            //                    for (c; c < (path->first.middle_point.size() - 1); c++) {
-            //                        if ((path->first.middle_point[c].first < GN_point->index || path->first.middle_point[c].first == GN_point->index)
-            //                            && GN_point->index < path->first.middle_point[c + 1].first) {
-            //                            break;
-            //                        }
-            //                    }
-            //                    
-            //                    if ((*tt).target_index == (*path).second[m + 1].path.target_index) {
-
-            //                        path_point path_point1 = { 0,GN_pointg.GN,*it,GN_pointg.start_time,0,0 };
-            //                        path_point1.spend_time = path_point1.path.leng / path->first.car_v;
-            //                        path_point1.end_time = path_point1.start_time + path_point1.spend_time;
-
-            //                        if (path_point1.end_time < pro_path->second[n + k - m].start_time) {
-            //                            (*path).second.erase((*path).second.begin() + m, (*path).second.begin() + m + 1);
-            //                            (*path).second.insert((*path).second.begin() + m, path_point1);
-            //                            path_point path_point2 = { 0,(*GNs)[(*tt).source_index],*tt, pro_path->second[n + k - m].end_time,0,0 };
-            //                            path_point2.spend_time = path_point2.path.leng / path->first.car_v;
-            //                            path_point2.end_time = path_point2.spend_time + path_point2.start_time;
-            //                            (*path).second.insert((*path).second.begin() + m + 1, path_point2);
-
-            //                            uint ii = 0;
-            //                            for (auto p = path->second.begin(); p != path->second.end(); p++) {
-            //                                (*p).index = ii;
-            //                                ii++;
-            //                            }
-            //                            double wait_time = path_point2.end_time - (*path).second[m + 2].start_time;
-            //                            delay_func(&(*path).second, m + 2, size, &wait_time);
-            //                            
-            //                            is_solve = true;
-            //                            is_return = true;
-            //                            break;
-            //                        }
-            //                    }
-
-            //                    else if ((*tt).target_index == GN_pointg.path.target_index) {
-            //                        path_point path_point1 = { 0,GN_pointg.GN,*it,GN_pointg.start_time,0,0 };
-            //                        path_point1.spend_time = path_point1.path.leng / path->first.car_v;
-            //                        path_point1.end_time = path_point1.start_time + path_point1.spend_time;
-
-            //                        if (path_point1.end_time < pro_path->second[n + k - m].start_time) {
-            //                            (*path).second.erase((*path).second.begin() + m);
-            //                            (*path).second.insert((*path).second.begin() + m, path_point1);
-            //                            
-            //                            path_point path_point2 = { 0,(*GNs)[(*tt).source_index],*tt, pro_path->second[n + k - m].end_time,0,0};
-            //                            path_point2.spend_time = path_point2.path.leng / path->first.car_v;
-            //                            path_point2.end_time = path_point2.spend_time + path_point2.start_time;
-            //                            (*path).second.insert((*path).second.begin() + m + 1, path_point2);
-
-            //                            uint ii = 0;
-            //                            for (auto p = path->second.begin(); p != path->second.end(); p++) {
-            //                                (*p).index = ii;
-            //                                ii++;
-            //                            }
-            //                            double wait_time = path_point2.end_time - (*path).second[m + 2].start_time;
-            //                            delay_func(&(*path).second, m + 2, size, &wait_time);
-            //                            for (uint v = c + 1; v < path->first.middle_point.size(); v++) {
-            //                                (*path).first.middle_point[v].first += 1;
-            //                            }
-            //                            is_solve = true;
-            //                            is_return = true;
-            //                            break;
-            //                        }
-            //                        else if ((*tt).target_index == GN_pointg.GN.index) {
-            //                            path_point path_point1 = { 0,GN_pointg.GN,*it,GN_pointg.start_time,0,0 };
-            //                            path_point1.spend_time = path_point1.path.leng / path->first.car_v;
-            //                            path_point1.end_time = path_point1.start_time + path_point1.spend_time;
-
-            //                            if (path_point1.end_time < pro_path->second[n + k - m].start_time) {
-            //                                
-            //                                (*path).second.insert((*path).second.begin() + m, path_point1);
-            //                                path_point path_point2 = { 0,(*GNs)[(*tt).source_index],*tt, pro_path->second[n + k - m].end_time,0,0 };
-            //                                path_point2.spend_time = path_point2.path.leng / path->first.car_v;
-            //                                path_point2.end_time = path_point2.spend_time + path_point2.start_time;
-            //                                (*path).second.insert((*path).second.begin() + m + 1, path_point2);
-
-            //                                uint ii = 0;
-            //                                for (auto p = path->second.begin(); p != path->second.end(); p++) {
-            //                                    (*p).index = ii;
-            //                                    ii++;
-            //                                }
-            //                                double wait_time = path_point2.end_time - (*path).second[m + 2].start_time;
-            //                                delay_func(&(*path).second, m + 2, size, &wait_time);
-            //                                for (uint v = c + 1; v < path->first.middle_point.size(); v++) {
-            //                                    (*path).first.middle_point[v].first += 2;
-            //                                }
-
-            //                                is_solve = true;
-            //                                is_return = true;
-            //                                break;
-            //                            }
-            //                        }
-            //                    }//折返型避障
-            //                }
-            //            }
-            //        }
-
-            //    }//不为岔路
-            //}
+            
             if (path->second[0].GN.link_edges.size()==2&&(!is_solve)) {
                 replanning_path(path,&(*path).second[0],GNs);
                 is_solve = true;
@@ -668,7 +551,7 @@ bool ASplanner::Generator::colliding_conflict(car_path* path, uint k, car_path* 
         &&GN_point->path.target_index == point_pro->path.target_index){  //同一段路径
         
         if (k < (size - 2) && n < (pro_size - 2)                           //保证此段路不为最后一段路
-            && GN_point->start_time < point_pro->start_time                    //此节点先到
+            && GN_point->end_time < point_pro->end_time                   //此节点先到
             && (*path).second[k + 1].start_time >=(*pro_path).second[n + 1].start_time) {    //但是下一个节点被超了
             bool is_solve = false;     //是否有分叉路
             for (uint ii = 1; ii < (k+1) && ii < n; ii++)//for循环往回找到分岔路，执行等待
@@ -845,7 +728,6 @@ bool ASplanner::Generator::mini_distance_between_vechels(car_path* path, uint k,
                     && (*path).second[k - ii].path.target_index == (*pro_path).second[n - ii].path.target_index) {
 
                     double *wait_time =new double( (*pro_path).second[n - ii].end_time + (mini_time - (*path).second[k - ii].spend_time) - (*path).second[k - ii].start_time);
-                    
                     delay_func(&(*path).second, k - ii, (*path).second.size(), wait_time);//后续时间窗延后
                     //for (uint u = (k - ii); u < ((*path).second.size()); u++)//后移时间窗
                     //{
@@ -949,7 +831,7 @@ bool ASplanner::Generator::node_check(car_path* path, uint k, car_path* pro_path
                 //重新规划
                 is_return = true;
             }
-
+       
        else if(pro_next->path.target_index != GN_point->GN.index
                 &&GN_pointg->path.target_index != point_pro->GN.index){
                 double* wait_time = new double(pro_next->end_time - GN_point->start_time);
@@ -959,7 +841,23 @@ bool ASplanner::Generator::node_check(car_path* path, uint k, car_path* pro_path
                 delete wait_time;
             }
         }
-
+   else if (GN_point->path.target_index == point_pro->path.target_index && GN_point->GN.index == point_pro->GN.index
+            && point_pro->end_time != pro_next->start_time  //前车在该节点有等待
+            && GN_point->end_time > point_pro->end_time && GN_point->end_time < pro_next->start_time) {
+            
+            double* wait_time = new double(pro_next->end_time - GN_point->start_time);
+            delay_func(&(*path).second, k, size, wait_time);
+            delete wait_time;
+        }
+   else if (GN_point->path.target_index == point_pro->path.target_index && GN_point->GN.index != point_pro->GN.index
+       && GN_point->end_time != (*path).second[k+1].start_time  //在该节点有等待
+       &&point_pro->end_time >GN_point->end_time&&pro_next->start_time < (*path).second[k + 1].start_time) {
+        
+            double* wait_time = new double(pro_next->end_time - GN_point->start_time);
+            delay_func(&(*path).second, k, size, wait_time);
+            delete wait_time;
+        
+        }
     }
     return is_return;
 }
