@@ -83,9 +83,13 @@ void  ASplanner::Generator::clearCollisions()
 double ASplanner::Generator::conflict_check(vector<pair<Car_config,pathList>>* paths, vector<G_Node>* GNs)
 {
     const uint car_count=paths->size();
+    uint result = car_count;
+    for (uint g = 1; g < car_count;++g) {
+        result *= g;
+    }
     uint ff = 0;
     for (uint i = 0; i < (*paths).size(); i++) {    // i小车数量
-        if ((*paths).size() ==3*(paths->size())) {
+        if ((*paths).size() >result) {
             cout << "优先级改变次数，次数过多" << endl;
             exit(1); }
         ff++;
@@ -118,15 +122,30 @@ double ASplanner::Generator::conflict_check(vector<pair<Car_config,pathList>>* p
                             flag = true;
                             break;
                         }
-                        ////相向冲突
-                        if ((*paths)[i].second.size() > 2 && (*paths)[j].first.index != -1) {
-                            bool is_conflict = opposing_conflict(&(*paths)[i], k, &(*paths)[j], n, GNs, paths, i, j);
-                            if (is_conflict) {
+                        //
+                        //// 节点冲突
+                        if ((*paths)[j].second.size() > 2) {
+                            node_conflict(&(*paths)[i], k, &(*paths)[j], n, GNs);
+                        }
+
+                        if ((*paths)[j].first.index != -1) {
+                            bool is_node_wait = node_check(&(*paths)[i], k, &(*paths)[j], n, GNs);
+                            if (is_node_wait) {
                                 flag = true;
                                 break;
                             }
                         }
+                        ////
+                        if ((*paths)[j].first.index != -1) {
+                            bool is_collidiong_return = colliding_conflict(&(*paths)[i], k, &(*paths)[j], n, GNs, paths, i, j);
 
+                            if (is_collidiong_return)
+                            {
+                                flag = true;
+                                break;
+                            }
+                        }
+                        //
                         if ((*paths)[j].first.index != -1&&(*paths)[j].second.size()!=0) {
                            
                             bool is_store_retrn = store_is_vechel(&(*paths)[i], k, &(*paths)[j], n, GNs, paths, i, j);
@@ -137,21 +156,15 @@ double ASplanner::Generator::conflict_check(vector<pair<Car_config,pathList>>* p
                             }
                         }
 
-                       // 节点冲突
-                        if ((*paths)[j].second.size() >2 ) {
-                             node_conflict(&(*paths)[i],k,&(*paths)[j],n, GNs);
-                        }
-
-                        //同向冲突
-                        if ((*paths)[j].first.index !=-1) {
-                            bool is_collidiong_return = colliding_conflict(&(*paths)[i], k, &(*paths)[j], n, GNs, paths, i, j);
-                        
-                            if (is_collidiong_return)
-                            {
+                        ////相向冲突
+                        if ((*paths)[i].second.size() > 2 && (*paths)[j].first.index != -1) {
+                            bool is_conflict = opposing_conflict(&(*paths)[i], k, &(*paths)[j], n, GNs, paths, i, j);
+                            if (is_conflict) {
                                 flag = true;
                                 break;
                             }
                         }
+
                         //冲突集判断及其策略
                         if ((*paths)[j].first.index != -1) {
                             bool is_collsion_return = collsion_collection(&(*paths)[i], k, &(*paths)[j], n, GNs,paths, i, j);
@@ -161,14 +174,8 @@ double ASplanner::Generator::conflict_check(vector<pair<Car_config,pathList>>* p
                                 break;
                             }
                         }
+                        //cout << "检测一遍" << endl;
                        
-                        if ((*paths)[j].first.index != -1) {
-                            bool is_node_wait = node_check(&(*paths)[i], k, &(*paths)[j], n, GNs);
-                            if (is_node_wait) {
-                                flag = true;
-                                break;
-                            }
-                        }
                     }
                 }//车m
             }//车i的k
@@ -359,12 +366,12 @@ bool ASplanner::Generator::opposing_conflict(car_path* path, uint k, car_path* p
             || ((GN_point->start_time >= point_pro->start_time) && (GN_point->end_time <= point_pro->end_time))) {
             bool is_solve = false;
             is_solve = backtrack(path,k, pro_path,n, GNs, pro_length);
-            
-            if (path->second[0].GN.link_edges.size()==2&&(!is_solve)) {
+            if (is_solve) { is_return = true; }
+            /*if (path->second[0].GN.link_edges.size()==2&&(!is_solve)) {
                 replanning_path(path,&(*path).second[0],GNs);
                 is_solve = true;
                 is_return = true;
-            }
+            }*/
 
             if (!is_solve) {     //改变优先级
                 pair<Car_config, pathList> temp = (*paths)[j];
@@ -411,10 +418,18 @@ bool ASplanner::Generator::collsion_collection(car_path* path, uint k, car_path*
                 cout << "后车终点为前车起点，时间窗后延" << endl;
             }
             else if (GN_point->GN.index == point_pro->path.target_index) {          //情况1、前车目标点是后车起点
-               bool is_ok=backtrack(path,n,pro_path,n,GNs,pro_length);
+               bool is_ok=backtrack(path,k,pro_path,n,GNs,pro_length);
                if (!is_ok) {
                    //改变优先级
-               
+                   pair<Car_config, pathList> temp = (*paths)[j];
+                   if (i == ((*paths).size() - 1)) {
+                       (*paths).push_back(temp);
+                   }
+                   else { (*paths).insert((*paths).begin() + i + 1, temp); }
+                   (*paths)[j].first.index = -1;
+
+                   (*paths)[j].second.clear();
+                   (*paths)[j].second.shrink_to_fit();
                }
             }
             else if(GN_point->GN.index == point_pro->GN.index){    //情况2、起点相同，终点不同。分为两种情况
@@ -547,70 +562,61 @@ bool ASplanner::Generator::colliding_conflict(car_path* path, uint k, car_path* 
     auto point_pro = &(*pro_path).second[n];
     uint pro_size = pro_path->second.size();
     uint size = path->second.size();
-    if(GN_point->GN.index == point_pro->GN.index 
-        &&GN_point->path.target_index == point_pro->path.target_index){  //同一段路径
-        
-        if (k < (size - 2) && n < (pro_size - 2)                           //保证此段路不为最后一段路
-            && GN_point->end_time < point_pro->end_time                   //此节点先到
-            && (*path).second[k + 1].start_time >=(*pro_path).second[n + 1].start_time) {    //但是下一个节点被超了
-            bool is_solve = false;     //是否有分叉路
-            for (uint ii = 1; ii < (k+1) && ii < n; ii++)//for循环往回找到分岔路，执行等待
-            {
-                if ((*path).second[k - ii].GN.index != (*pro_path).second[n - ii].GN.index
-                    && (*path).second[k - ii].path.target_index == (*pro_path).second[n - ii].path.target_index) {
+    double length_time = 0.0;
+    if (pro_path->first.type == 0) { length_time = agv_length / pro_path->first.car_v; }
+    else { length_time = fork_length / pro_path->first.car_v; }
+    if (k < (size - 2) && n < (pro_size - 2) 
+        &&GN_point->path.target_index==point_pro->path.target_index                    //保证此段路不为最后一段路
+        && GN_point->end_time != (*path).second[k+1].start_time                 //此节点先到
+        && point_pro->end_time < GN_point->end_time
+        &&(*pro_path).second[n+1].start_time <= (*path).second[n+1].start_time) {    //但是下一个节点被超了
+        bool is_solve = false;     //是否有分叉路
+        if (GN_point->GN.index == (*pro_path).second[n+1].path.target_index) {//同一段路
 
-                    double length_time = 0.0;
-                    if (pro_path->first.type == 0) { length_time = agv_length / pro_path->first.car_v; }
-                    else { length_time = fork_length / pro_path->first.car_v; }
-                    double* wait_time =new double(((*pro_path).second[n - ii].end_time) - ((*path).second[k - ii].start_time) + length_time);
-                   
-                    delay_func(&(*path).second, k - ii, size, wait_time);//后续时间窗延后
-                    //for (uint u = (k - ii); u < ((*path).second.size()); u++)//后移时间窗
-                    //{
-                    //    (*path).second[u].start_time += wait_time;
-                    //    (*path).second[u].end_time += wait_time;
-                    //}
-                    delete wait_time;
-                    is_solve = true;
-                    is_return = true;
-                    break;
-                }
-            }
-
-            if (!is_solve) {              //审核员审核是否解决（没找到分岔路）
-                pair<Car_config, pathList>temp = (*paths)[j];
-                if (i == ((*paths).size() - 1)) {
-                    (*paths).push_back(temp);
-                }
-                else { (*paths).insert((*paths).begin() + i + 1, temp); }
-                (*paths)[j].first.index = -1;
-                temp.second.clear();
-                (*paths)[j].second.clear();
-                (*paths)[j].second.shrink_to_fit();
-                cout << "同向冲突，调整优先级！" << endl;
-            }
-           
+             is_solve=backtrack(path,k,pro_path,n+1,GNs,1.0);
+             is_solve = true;
+             is_return = true;
         }
-       
-   else if (k < (size - 2) && n < (pro_size - 2)
-        &&GN_point->start_time < point_pro->start_time
-            && (*path).second[k+1].start_time >= (*pro_path).second[n+1].start_time) {
-            //采取后车减速
-            if ((*path).first.car_v > pro_path->first.car_v)
-            {
-                (*path).first.car_v = pro_path->first.car_v;
-            }
+        else if (GN_point->GN.index != (*pro_path).second[n + 1].path.target_index) {
+            double* wait_time =new double(point_pro->end_time - length_time-GN_point->start_time) ;
+            delay_func(&(*path).second, k , size, wait_time);//后续时间窗延后
+            delete wait_time;
+            is_solve = true;
+        }
 
-            double moderate_time = (*path).second[k].start_time;
+        if (!is_solve) {              //审核员审核是否解决（没找到分岔路）
+            pair<Car_config, pathList>temp = (*paths)[j];
+            if (i == ((*paths).size() - 1)) {
+                (*paths).push_back(temp);
+            }
+            else { (*paths).insert((*paths).begin() + i+1 , temp); }
+            (*paths)[j].first.index = -1;
+            temp.second.clear();
+            (*paths)[j].second.clear();
+            (*paths)[j].second.shrink_to_fit();
             
-            for (uint m = k; m < (*path).second.size(); m++) {
-                (*path).second[m].start_time = moderate_time;
-                (*path).second[m].spend_time = (*path).second[m].path.leng / (*path).first.car_v;
-                moderate_time += (*path).second[m].spend_time;
-                (*path).second[m].end_time = moderate_time;
-            }
         }
+           
     }
+       
+   //else if (k < (size - 2) && n < (pro_size - 2)
+   //     &&GN_point->start_time < point_pro->start_time
+   //         && (*path).second[k+1].start_time >= (*pro_path).second[n+1].start_time) {
+   //         //采取后车减速
+   //         if ((*path).first.car_v > pro_path->first.car_v)
+   //         {
+   //             (*path).first.car_v = pro_path->first.car_v;
+   //         }
+
+   //         double moderate_time = (*path).second[k].start_time;
+   //         
+   //         for (uint m = k; m < (*path).second.size(); m++) {
+   //             (*path).second[m].start_time = moderate_time;
+   //             (*path).second[m].spend_time = (*path).second[m].path.leng / (*path).first.car_v;
+   //             moderate_time += (*path).second[m].spend_time;
+   //             (*path).second[m].end_time = moderate_time;
+   //         }
+   //     } 
     return is_return;
 }
 
@@ -829,35 +835,19 @@ bool ASplanner::Generator::node_check(car_path* path, uint k, car_path* pro_path
             if (pro_next->path.target_index==GN_point->GN.index) {
                 replanning_path(path, GN_point, GNs);
                 //重新规划
+                cout << "同一起点，前车等待时路过该节点" << endl;
                 is_return = true;
             }
        
-       else if(pro_next->path.target_index != GN_point->GN.index
-                &&GN_pointg->path.target_index != point_pro->GN.index){
+            else if(pro_next->path.target_index != GN_point->GN.index){
                 double* wait_time = new double(pro_next->end_time - GN_point->start_time);
-                
+                cout << "前车目标点不为该点，等待" << endl;
                 delay_func(&(*path).second, k, size, wait_time);//后续时间窗延后
                
                 delete wait_time;
             }
         }
-   else if (GN_point->path.target_index == point_pro->path.target_index && GN_point->GN.index == point_pro->GN.index
-            && point_pro->end_time != pro_next->start_time  //前车在该节点有等待
-            && GN_point->end_time > point_pro->end_time && GN_point->end_time < pro_next->start_time) {
-            
-            double* wait_time = new double(pro_next->end_time - GN_point->start_time);
-            delay_func(&(*path).second, k, size, wait_time);
-            delete wait_time;
-        }
-
-   else if (GN_point->path.target_index == point_pro->path.target_index && GN_point->GN.index != point_pro->GN.index
-       &&k<size-1 &&GN_point->end_time != (*path).second[k+1].start_time  //在该节点有等待
-       && point_pro->end_time > GN_point->end_time &&pro_next->start_time < (*path).second[k + 1].start_time) {
-            double* wait_time = new double(pro_next->end_time - GN_point->start_time);
-            delay_func(&(*path).second, k, size, wait_time);
-            delete wait_time;
-        
-        }
+   
     }
     return is_return;
 }
@@ -873,8 +863,7 @@ bool ASplanner::Generator::store_is_vechel(car_path* path, uint k, car_path* pro
     if (pro_path->first.type == 0) { pro_length = &agv_length; }
     else { pro_length = &fork_length; }
     
-    if (k < (size - 3)&& (*path).second[k + 1].GN.name.last_id == 0 
-        &&(*path).second[k+2].GN.name.last_id !=0&&n<pro_size-2) {  //该车需要进入断头路
+    if (k>2&&(k < size - 3)&& (*path).second[k + 1].GN.name.last_id == 0 &&( n < pro_size - 3) &&(*path).second[k+2].GN.name.last_id !=0) {  //该车需要进入断头路
         path_point* GN_out= nullptr;//初始化
         for (uint count = k+2; count<(*path).second.size();count++) {
             if ((*path).second[count].GN.name.last_id == 0) {
@@ -1102,7 +1091,7 @@ bool ASplanner::Generator::backtrack(car_path* path, uint k, car_path* pro_path,
     auto GN_point = &(*path).second[k];
     uint pro_size =pro_path->second.size() ;
     uint size = path->second.size();
-    for (uint m = k - 1; m > 0; m--) {
+    for (uint m = k; m > 0; m--) {
         if (is_solve) { break; }
         auto GN_pointg = (*path).second[m];
         if ((n + k - m < pro_size - 2) && GN_pointg.GN.index != pro_path->second[n + k - m].path.target_index)//优先级高的车此段路与本车无冲突冲突
@@ -1146,8 +1135,7 @@ bool ASplanner::Generator::backtrack(car_path* path, uint k, car_path* pro_path,
                                     ii++;
                                 }
                                 double wait_time = path_point2.end_time - (*path).second[m + 2].start_time;
-                                delay_func(&(*path).second, m + 2, size, &wait_time);
-
+                                delay_func(&(*path).second, m + 2, path->second.size(), &wait_time);
                                 is_solve = true;
                                 break;
                             }
@@ -1173,46 +1161,46 @@ bool ASplanner::Generator::backtrack(car_path* path, uint k, car_path* pro_path,
                                     ii++;
                                 }
                                 double wait_time = path_point2.end_time - (*path).second[m + 2].start_time;
-                                delay_func(&(*path).second, m + 2, size, &wait_time);
+                                delay_func(&(*path).second, m + 2, path->second.size(), &wait_time);
                                 for (uint v = c + 1; v < path->first.middle_point.size(); v++) {
                                     (*path).first.middle_point[v].first += 1;
                                 }
                                 is_solve = true;
                                 break;
                             }
-                            else if ((*tt).target_index == GN_pointg.GN.index) {
-                                path_point path_point1 = { 0,GN_pointg.GN,*it,GN_pointg.start_time,0,0 };
-                                path_point1.spend_time = path_point1.path.leng / path->first.car_v;
-                                path_point1.end_time = path_point1.start_time + path_point1.spend_time;
-
-                                if (path_point1.end_time < pro_path->second[n + k - m].start_time) {
-
-                                    (*path).second.insert((*path).second.begin() + m, path_point1);
-                                    path_point path_point2 = { 0,(*GNs)[(*tt).source_index],*tt, pro_path->second[n + k - m].end_time,0,0 };
-                                    path_point2.spend_time = path_point2.path.leng / path->first.car_v;
-                                    path_point2.end_time = path_point2.spend_time + path_point2.start_time;
-                                    (*path).second.insert((*path).second.begin() + m + 1, path_point2);
-
-                                    uint ii = 0;
-                                    for (auto p = path->second.begin(); p != path->second.end(); p++) {
-                                        (*p).index = ii;
-                                        ii++;
-                                    }
-                                    double wait_time = path_point2.end_time - (*path).second[m + 2].start_time;
-                                    delay_func(&(*path).second, m + 2, size, &wait_time);
-                                    for (uint v = c + 1; v < path->first.middle_point.size(); v++) {
-                                        (*path).first.middle_point[v].first += 2;
-                                    }
-
-                                    is_solve = true;
-                                    break;
-                                }
-                            }
+                            
                         }//折返型避障
+                        else if ((*tt).target_index == GN_pointg.GN.index) {
+                            path_point path_point1 = { 0,GN_pointg.GN,*it,GN_pointg.start_time,0,0 };
+                            path_point1.spend_time = path_point1.path.leng / path->first.car_v;
+                            path_point1.end_time = path_point1.start_time + path_point1.spend_time;
+
+                            /*if (path_point1.end_time < pro_path->second[n + k - m].start_time) {*/
+
+                            (*path).second.insert((*path).second.begin() + m, path_point1);
+                            path_point path_point2 = { 0,(*GNs)[(*tt).source_index],*tt, pro_path->second[n + k - m].end_time,0,0 };
+                            path_point2.spend_time = path_point2.path.leng / path->first.car_v;
+                            path_point2.end_time = path_point2.spend_time + path_point2.start_time;
+                            (*path).second.insert((*path).second.begin() + m + 1, path_point2);
+
+                            uint ii = 0;
+                            for (auto p = path->second.begin(); p != path->second.end(); p++) {
+                                (*p).index = ii;
+                                ii++;
+                            }
+                            double wait_time =  path_point2.end_time- path_point1.start_time ;
+                            delay_func(&(*path).second, m + 2, path->second.size(), &wait_time);
+                            for (uint v = c + 1; v < path->first.middle_point.size(); v++) {
+                                (*path).first.middle_point[v].first += 2;
+                            }
+
+                            is_solve = true;
+                            break;
+                            //}
+                        }
                     }
                 }
             }
-
         }//不为岔路
     }
     return is_solve;
