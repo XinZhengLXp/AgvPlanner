@@ -122,29 +122,13 @@ double ASplanner::Generator::conflict_check(vector<pair<Car_config,pathList>>* p
                             flag = true;
                             break;
                         }
-                        //
+                        
                         //// 节点冲突
-                        if ((*paths)[j].second.size() > 2) {
+                        /*if ((*paths)[j].second.size() > 2) {
                             node_conflict(&(*paths)[i], k, &(*paths)[j], n, GNs);
-                        }
-
-                        if ((*paths)[j].first.index != -1) {
-                            bool is_node_wait = node_check(&(*paths)[i], k, &(*paths)[j], n, GNs);
-                            if (is_node_wait) {
-                                flag = true;
-                                break;
-                            }
-                        }
-                        ////
-                        if ((*paths)[j].first.index != -1) {
-                            bool is_collidiong_return = colliding_conflict(&(*paths)[i], k, &(*paths)[j], n, GNs, paths, i, j);
-
-                            if (is_collidiong_return)
-                            {
-                                flag = true;
-                                break;
-                            }
-                        }
+                        }*/
+                        //cout << "1111111" << endl;
+                        
                         //
                         if ((*paths)[j].first.index != -1&&(*paths)[j].second.size()!=0) {
                            
@@ -161,6 +145,7 @@ double ASplanner::Generator::conflict_check(vector<pair<Car_config,pathList>>* p
                             bool is_conflict = opposing_conflict(&(*paths)[i], k, &(*paths)[j], n, GNs, paths, i, j);
                             if (is_conflict) {
                                 flag = true;
+                                cout << i+1 << "车与" << j +1<< "车冲突存在相向冲突" << endl;
                                 break;
                             }
                         }
@@ -174,8 +159,28 @@ double ASplanner::Generator::conflict_check(vector<pair<Car_config,pathList>>* p
                                 break;
                             }
                         }
-                        //cout << "检测一遍" << endl;
-                       
+                        
+                        //高优先级的节点检测
+                        if ((*paths)[j].first.index != -1) {
+                            bool is_node_wait = node_check(&(*paths)[i], k, &(*paths)[j], n, GNs, paths, i, j);
+                            if (is_node_wait) {
+                                flag = true;
+                                cout << j+1 << "车在节点等待"<<i+1<<"车改道" << endl;
+                                break;
+                            }
+                        }
+                        //低优先级车节点检测
+                        if ((*paths)[j].first.index != -1) {
+                            bool is_collidiong_return = colliding_conflict(&(*paths)[i], k, &(*paths)[j], n, GNs, paths, i, j);
+
+                            if (is_collidiong_return)
+                            {
+                                flag = true;
+                                cout << i + 1 << "车在节点等待,防止被" << j + 1 << "车碾压" << endl;
+                                break;
+                            }
+                        }
+                        
                     }
                 }//车m
             }//车i的k
@@ -365,7 +370,7 @@ bool ASplanner::Generator::opposing_conflict(car_path* path, uint k, car_path* p
             || ((GN_point->start_time <= point_pro->start_time)&& (GN_point->end_time >= point_pro->end_time))
             || ((GN_point->start_time >= point_pro->start_time) && (GN_point->end_time <= point_pro->end_time))) {
             bool is_solve = false;
-            is_solve = backtrack(path,k, pro_path,n, GNs, pro_length);
+            is_solve = backtrack(paths,path,k, pro_path,n, GNs, pro_length);
             if (is_solve) { is_return = true; }
             /*if (path->second[0].GN.link_edges.size()==2&&(!is_solve)) {
                 replanning_path(path,&(*path).second[0],GNs);
@@ -418,7 +423,7 @@ bool ASplanner::Generator::collsion_collection(car_path* path, uint k, car_path*
                 cout << "后车终点为前车起点，时间窗后延" << endl;
             }
             else if (GN_point->GN.index == point_pro->path.target_index) {          //情况1、前车目标点是后车起点
-               bool is_ok=backtrack(path,k,pro_path,n,GNs,pro_length);
+               bool is_ok=backtrack(paths,path,k,pro_path,n,GNs,pro_length);
                if (!is_ok) {
                    //改变优先级
                    pair<Car_config, pathList> temp = (*paths)[j];
@@ -473,6 +478,7 @@ bool ASplanner::Generator::collsion_collection(car_path* path, uint k, car_path*
                         
                         delay_func(&(*path).second, k - 1,size, wait_time);//后续时间窗延后
                         delete wait_time;
+                        is_return = true;
                     }
                 }
             }
@@ -558,6 +564,9 @@ bool ASplanner::Generator::colliding_conflict(car_path* path, uint k, car_path* 
 {   
     bool is_return = false;
     car_path new_path = {};
+    double length = 0.0;
+    if (path->first.type == 0) { length = agv_length; }
+    else { length = fork_length; }
     auto GN_point = &(*path).second[k];
     auto point_pro = &(*pro_path).second[n];
     uint pro_size = pro_path->second.size();
@@ -567,18 +576,18 @@ bool ASplanner::Generator::colliding_conflict(car_path* path, uint k, car_path* 
     else { length_time = fork_length / pro_path->first.car_v; }
     if (k < (size - 2) && n < (pro_size - 2) 
         &&GN_point->path.target_index==point_pro->path.target_index                    //保证此段路不为最后一段路
-        && GN_point->end_time != (*path).second[k+1].start_time                 //此节点先到
-        && point_pro->end_time < GN_point->end_time
-        &&(*pro_path).second[n+1].start_time <= (*path).second[n+1].start_time) {    //但是下一个节点被超了
+        &&  ((*path).second[k+1].start_time - GN_point->end_time)>2                 //此节点先到
+        && point_pro->end_time >= GN_point->end_time
+        &&point_pro->end_time <= ((*path).second[k + 1].start_time+(length/path->first.car_v))) {    //等待时间被碾压
         bool is_solve = false;     //是否有分叉路
         if (GN_point->GN.index == (*pro_path).second[n+1].path.target_index) {//同一段路
 
-             is_solve=backtrack(path,k,pro_path,n+1,GNs,1.0);
+             is_solve=backtrack(paths,path,k,pro_path,n+1,GNs,1.0);
              is_solve = true;
              is_return = true;
         }
         else if (GN_point->GN.index != (*pro_path).second[n + 1].path.target_index) {
-            double* wait_time =new double(point_pro->end_time - length_time-GN_point->start_time) ;
+            double* wait_time =new double(point_pro->end_time + length_time - GN_point->start_time) ;
             delay_func(&(*path).second, k , size, wait_time);//后续时间窗延后
             delete wait_time;
             is_solve = true;
@@ -598,25 +607,7 @@ bool ASplanner::Generator::colliding_conflict(car_path* path, uint k, car_path* 
         }
            
     }
-       
-   //else if (k < (size - 2) && n < (pro_size - 2)
-   //     &&GN_point->start_time < point_pro->start_time
-   //         && (*path).second[k+1].start_time >= (*pro_path).second[n+1].start_time) {
-   //         //采取后车减速
-   //         if ((*path).first.car_v > pro_path->first.car_v)
-   //         {
-   //             (*path).first.car_v = pro_path->first.car_v;
-   //         }
-
-   //         double moderate_time = (*path).second[k].start_time;
-   //         
-   //         for (uint m = k; m < (*path).second.size(); m++) {
-   //             (*path).second[m].start_time = moderate_time;
-   //             (*path).second[m].spend_time = (*path).second[m].path.leng / (*path).first.car_v;
-   //             moderate_time += (*path).second[m].spend_time;
-   //             (*path).second[m].end_time = moderate_time;
-   //         }
-   //     } 
+  
     return is_return;
 }
 
@@ -701,6 +692,7 @@ bool ASplanner::Generator::mini_distance_between_vechels(car_path* path, uint k,
                     (*path).second[m].start_time += mini_time;
                     (*path).second[m].end_time += mini_time;     
                 }*/
+                is_return = true;
                 delete wait_time;
             }
 
@@ -713,6 +705,7 @@ bool ASplanner::Generator::mini_distance_between_vechels(car_path* path, uint k,
                     (*path).second[m].start_time += wait_time;
                     (*path).second[m].end_time += wait_time;
                 }*/
+                is_return = true;
                 delete wait_time;
             }
             else {
@@ -778,7 +771,7 @@ bool ASplanner::Generator::mini_distance_between_vechels(car_path* path, uint k,
             }
 
             else if (GN_point->start_time < point_pro->start_time ){ //低优先级的车在前
-                    //往前回溯
+                    
                 bool is_solve = false;
                 for (uint ii = 1; ii < (k+1) && ii < (n+1); ii++)//取最小值
                 {
@@ -816,8 +809,8 @@ bool ASplanner::Generator::mini_distance_between_vechels(car_path* path, uint k,
 
     return is_return;
 }
-
-bool ASplanner::Generator::node_check(car_path* path, uint k, car_path* pro_path, uint n, vector<G_Node>* GNs)
+//前车节点检测
+bool ASplanner::Generator::node_check(car_path* path, uint k, car_path* pro_path, uint n, vector<G_Node>* GNs, vector<pair<Car_config, pathList>>* paths, uint i, uint j)
 {
     bool is_return = false;
     auto GN_point = &(*path).second[k];
@@ -829,13 +822,24 @@ bool ASplanner::Generator::node_check(car_path* path, uint k, car_path* pro_path
         auto pro_next = &(*pro_path).second[n + 1];
         uint size = path->second.size();
         uint pro_size = pro_path->second.size();
-        if (GN_point->path.target_index == point_pro->path.target_index && GN_point->GN.index != point_pro->GN.index
+        if (GN_point->path.target_index == point_pro->path.target_index //&& GN_point->GN.index != point_pro->GN.index
             && point_pro->end_time != pro_next->start_time  //前车在该节点有等待
             && GN_point->end_time > point_pro->end_time && GN_point->end_time < pro_next->start_time){//在前车等待时间路过该节点
             if (pro_next->path.target_index==GN_point->GN.index) {
-                replanning_path(path, GN_point, GNs);
+                //replanning_path(path, GN_point, GNs);
+                bool is_solve=backtrack(paths,path,k,pro_path,n+1,GNs,1.0);
                 //重新规划
-                cout << "同一起点，前车等待时路过该节点" << endl;
+                if (!is_solve) {
+                    pair<Car_config, pathList>temp = (*paths)[j];
+                    if (i == ((*paths).size() - 1)) {
+                        (*paths).push_back(temp);
+                    }
+                    else { (*paths).insert((*paths).begin() + i + 1, temp); }
+                    (*paths)[j].first.index = -1;
+                    temp.second.clear();
+                    (*paths)[j].second.clear();
+                    (*paths)[j].second.shrink_to_fit();
+                }
                 is_return = true;
             }
        
@@ -1000,12 +1004,7 @@ void ASplanner::Generator::replanning_path(car_path* path,path_point* GN_point, 
 }
 
 void ASplanner::Generator::dont_in(car_path* path, path_point* GN_point, vector<G_Node>* GNs) {
-
-
-
-
-
-
+    return;
 }
 //任务调度
 string ASplanner::Generator::task_scheduling(vector<pair<Car_config, pathList>> GNLs,string Filename, vector<G_Node>* GNs) {
@@ -1086,12 +1085,13 @@ string ASplanner::Generator::task_scheduling(vector<pair<Car_config, pathList>> 
     GNLs.shrink_to_fit();
 }
 
-bool ASplanner::Generator::backtrack(car_path* path, uint k, car_path* pro_path, uint n, vector<G_Node>* GNs,double pro_length) {
+bool ASplanner::Generator::backtrack(vector<car_path> *paths,car_path* path, uint k, car_path* pro_path, uint n, vector<G_Node>* GNs,double pro_length) {
     bool is_solve=false;
     auto GN_point = &(*path).second[k];
     uint pro_size =pro_path->second.size() ;
     uint size = path->second.size();
-    for (uint m = k; m > 0; m--) {
+    
+    for (uint m = k-1;m > 0; m--) {
         if (is_solve) { break; }
         auto GN_pointg = (*path).second[m];
         if ((n + k - m < pro_size - 2) && GN_pointg.GN.index != pro_path->second[n + k - m].path.target_index)//优先级高的车此段路与本车无冲突冲突
@@ -1100,12 +1100,14 @@ bool ASplanner::Generator::backtrack(car_path* path, uint k, car_path* pro_path,
             delay_func(&(*path).second, m, size, wait_time);
             delete wait_time;
             is_solve = true;
+            break; 
         }
         else if ((n + k - m < pro_size - 2) && GN_pointg.GN.index == pro_path->second[n + k - m].path.target_index) {  //优先级高的车此段路还有本车有冲突
             for (auto it = GN_pointg.GN.link_edges.begin(); it != GN_pointg.GN.link_edges.end(); it++) {//遍历k-1段路的连接关系
                 if (is_solve) { break; }
                 if (m > 0 && (*it).target_index != (*path).second[m - 1].GN.index   //不为上一段路
-                    && (*it).target_index != (*path).second[m].path.target_index) { //不为下一段路（出度大于2）
+                    && (*it).target_index != (*path).second[m].path.target_index
+                    &&(*it).target_index != pro_path->second[n + k - m+1].path.target_index) { //不为下一段路（出度大于2）
                     //遍历GN_pointg的target这个点的连接关系
                     for (auto tt = (*GNs)[(*it).target_index].link_edges.begin(); tt != (*GNs)[(*it).target_index].link_edges.end(); tt++) {
                         uint c = 0;
@@ -1120,24 +1122,34 @@ bool ASplanner::Generator::backtrack(car_path* path, uint k, car_path* pro_path,
                             path_point path_point1 = { 0,GN_pointg.GN,*it,GN_pointg.start_time,0,0 };
                             path_point1.spend_time = path_point1.path.leng / path->first.car_v;
                             path_point1.end_time = path_point1.start_time + path_point1.spend_time;
+                            path_point path_point2 = { 0,(*GNs)[(*tt).source_index],*tt, pro_path->second[n + k - m].end_time,0,0 };
+                            path_point2.spend_time = path_point2.path.leng / path->first.car_v;
+                            path_point2.end_time = path_point2.spend_time + path_point2.start_time;
 
                             if (path_point1.end_time < pro_path->second[n + k - m].start_time) {
-                                (*path).second.erase((*path).second.begin() + m, (*path).second.begin() + m + 1);
-                                (*path).second.insert((*path).second.begin() + m, path_point1);
-                                path_point path_point2 = { 0,(*GNs)[(*tt).source_index],*tt, pro_path->second[n + k - m].end_time,0,0 };
-                                path_point2.spend_time = path_point2.path.leng / path->first.car_v;
-                                path_point2.end_time = path_point2.spend_time + path_point2.start_time;
-                                (*path).second.insert((*path).second.begin() + m + 1, path_point2);
+                                 for (uint f = 0; f < path->first.index-1;f++) {
+                                     if (is_solve) { break; }
+                                    for (auto chk = (*paths)[f].second.begin(); chk != (*paths)[f].second.end(); chk++) {
+                                        if ((((*chk).GN.index == (*tt).source_index && (*chk).path.target_index == (*tt).target_index)
+                                            || ((*chk).GN.index == (*tt).target_index && (*chk).path.target_index == (*tt).source_index))
+                                            && !(((*chk).start_time > path_point1.start_time && (*chk).start_time < path_point2.end_time) ||
+                                                (*chk).start_time < path_point1.start_time && (*chk).end_time > path_point1.start_time)) {
 
-                                uint ii = 0;
-                                for (auto p = path->second.begin(); p != path->second.end(); p++) {
-                                    (*p).index = ii;
-                                    ii++;
-                                }
-                                double wait_time = path_point2.end_time - (*path).second[m + 2].start_time;
-                                delay_func(&(*path).second, m + 2, path->second.size(), &wait_time);
-                                is_solve = true;
-                                break;
+                                            (*path).second.erase((*path).second.begin() + m, (*path).second.begin() + m + 1);
+                                            (*path).second.insert((*path).second.begin() + m, path_point1);
+                                            (*path).second.insert((*path).second.begin() + m + 1, path_point2);
+                                            uint ii = 0;
+                                            for (auto p = path->second.begin(); p != path->second.end(); p++) {
+                                                (*p).index = ii;
+                                                ii++;
+                                            }
+                                            double wait_time = path_point2.end_time - (*path).second[m + 2].start_time;
+                                            delay_func(&(*path).second, m + 2, path->second.size(), &wait_time);
+                                            is_solve = true;
+                                            break;
+                                        }
+                                    }
+                                 }
                             }
                         }
 
@@ -1145,28 +1157,35 @@ bool ASplanner::Generator::backtrack(car_path* path, uint k, car_path* pro_path,
                             path_point path_point1 = { 0,GN_pointg.GN,*it,GN_pointg.start_time,0,0 };
                             path_point1.spend_time = path_point1.path.leng / path->first.car_v;
                             path_point1.end_time = path_point1.start_time + path_point1.spend_time;
-
+                            path_point path_point2 = { 0,(*GNs)[(*tt).source_index],*tt, pro_path->second[n + k - m].end_time,0,0 };
+                            path_point2.spend_time = path_point2.path.leng / path->first.car_v;
+                            path_point2.end_time = path_point2.spend_time + path_point2.start_time;
                             if (path_point1.end_time < pro_path->second[n + k - m].start_time) {
-                                (*path).second.erase((*path).second.begin() + m);
-                                (*path).second.insert((*path).second.begin() + m, path_point1);
-
-                                path_point path_point2 = { 0,(*GNs)[(*tt).source_index],*tt, pro_path->second[n + k - m].end_time,0,0 };
-                                path_point2.spend_time = path_point2.path.leng / path->first.car_v;
-                                path_point2.end_time = path_point2.spend_time + path_point2.start_time;
-                                (*path).second.insert((*path).second.begin() + m + 1, path_point2);
-
-                                uint ii = 0;
-                                for (auto p = path->second.begin(); p != path->second.end(); p++) {
-                                    (*p).index = ii;
-                                    ii++;
+                                for (uint f = 0; f < path->first.index - 1; f++) {
+                                    if (is_solve) { break; }
+                                    for (auto chk = (*paths)[f].second.begin(); chk != (*paths)[f].second.end(); chk++) {
+                                        if ((((*chk).GN.index == (*tt).source_index && (*chk).path.target_index == (*tt).target_index)
+                                            || ((*chk).GN.index == (*tt).target_index && (*chk).path.target_index == (*tt).source_index))
+                                            && !(((*chk).start_time > path_point1.start_time && (*chk).start_time < path_point2.end_time) ||
+                                                (*chk).start_time < path_point1.start_time && (*chk).end_time > path_point1.start_time)) {
+                                            (*path).second.erase((*path).second.begin() + m);
+                                            (*path).second.insert((*path).second.begin() + m, path_point1);
+                                            (*path).second.insert((*path).second.begin() + m + 1, path_point2);
+                                            uint ii = 0;
+                                            for (auto p = path->second.begin(); p != path->second.end(); p++) {
+                                                (*p).index = ii;
+                                                ii++;
+                                            }
+                                            double wait_time = path_point2.end_time - (*path).second[m + 2].start_time;
+                                            delay_func(&(*path).second, m + 2, path->second.size(), &wait_time);
+                                            for (uint v = c + 1; v < path->first.middle_point.size(); v++) {
+                                                (*path).first.middle_point[v].first += 1;
+                                            }
+                                            is_solve = true;
+                                            break;
+                                        }
+                                    }
                                 }
-                                double wait_time = path_point2.end_time - (*path).second[m + 2].start_time;
-                                delay_func(&(*path).second, m + 2, path->second.size(), &wait_time);
-                                for (uint v = c + 1; v < path->first.middle_point.size(); v++) {
-                                    (*path).first.middle_point[v].first += 1;
-                                }
-                                is_solve = true;
-                                break;
                             }
                             
                         }//折返型避障
@@ -1174,29 +1193,40 @@ bool ASplanner::Generator::backtrack(car_path* path, uint k, car_path* pro_path,
                             path_point path_point1 = { 0,GN_pointg.GN,*it,GN_pointg.start_time,0,0 };
                             path_point1.spend_time = path_point1.path.leng / path->first.car_v;
                             path_point1.end_time = path_point1.start_time + path_point1.spend_time;
-
-                            /*if (path_point1.end_time < pro_path->second[n + k - m].start_time) {*/
-
-                            (*path).second.insert((*path).second.begin() + m, path_point1);
                             path_point path_point2 = { 0,(*GNs)[(*tt).source_index],*tt, pro_path->second[n + k - m].end_time,0,0 };
                             path_point2.spend_time = path_point2.path.leng / path->first.car_v;
                             path_point2.end_time = path_point2.spend_time + path_point2.start_time;
-                            (*path).second.insert((*path).second.begin() + m + 1, path_point2);
-
-                            uint ii = 0;
-                            for (auto p = path->second.begin(); p != path->second.end(); p++) {
-                                (*p).index = ii;
-                                ii++;
+                            bool hege = true;
+                            for (uint f = 0; f < path->first.index - 1; f++) {
+                                if (is_solve) { break; }
+                                for (auto chk = (*paths)[f].second.begin(); chk != (*paths)[f].second.end(); chk++) {
+                                    auto zh = std::next(chk);
+                                    if ((((*chk).GN.index == (*tt).source_index && (*chk).path.target_index == (*tt).target_index)
+                                        || ((*chk).GN.index == (*tt).target_index && (*chk).path.target_index == (*tt).source_index))
+                                        && ((((*chk).start_time > path_point1.start_time && (*chk).start_time < path_point2.end_time) ||
+                                            ((*chk).start_time < path_point1.start_time && (*chk).end_time > path_point1.start_time))
+                                        ||(path_point1.start_time >= (*chk).end_time && path_point1.start_time <= (*zh).start_time))) {
+                                        hege = false;
+                                        
+                                    }
+                                }
                             }
-                            double wait_time =  path_point2.end_time- path_point1.start_time ;
-                            delay_func(&(*path).second, m + 2, path->second.size(), &wait_time);
-                            for (uint v = c + 1; v < path->first.middle_point.size(); v++) {
-                                (*path).first.middle_point[v].first += 2;
+                            if (hege) {
+                                (*path).second.insert((*path).second.begin() + m, path_point1);
+                                (*path).second.insert((*path).second.begin() + m + 1, path_point2);
+                                uint ii = 0;
+                                for (auto p = path->second.begin(); p != path->second.end(); p++) {
+                                    (*p).index = ii;
+                                    ii++;
+                                }
+                                double wait_time = path_point2.end_time - path_point1.start_time;
+                                delay_func(&(*path).second, m + 2, path->second.size(), &wait_time);
+                                for (uint v = c + 1; v < path->first.middle_point.size(); v++) {
+                                    (*path).first.middle_point[v].first += 2;
+                                }
+                                is_solve = true;
+                                break;
                             }
-
-                            is_solve = true;
-                            break;
-                            //}
                         }
                     }
                 }
